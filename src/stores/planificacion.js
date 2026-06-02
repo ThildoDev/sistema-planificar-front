@@ -60,6 +60,7 @@ import DocenteRepository from '@/repositories/DocenteRepository'
 export const usePlanificacionStore = defineStore('planificacion', () => {
   const planificaciones = ref([])
   const loading = ref(false)
+  const loadingAction = ref(false)
   const error = ref(null)
 
   const totalPlanificaciones = computed(() => planificaciones.value.length)
@@ -89,15 +90,33 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
       loading.value = false
     }
   }
+  async function crearPlanificacion(formData) {
+    loadingAction.value = true
+    clearErrors()
+    try {
+      const data = await DocenteRepository.storePlanificacion(formData)
+      // Si el backend retorna el objeto creado, lo inyectamos al inicio de la lista reactiva
+      const nuevaPlan = data.planificacion || data
+      if (nuevaPlan) planificaciones.value.unshift(nuevaPlan)
+      return { ok: true }
+    } catch (err) {
+      error.value = err.response?.data?.message || 'Error al guardar la planificación.'
+      return { ok: false }
+    } finally {
+      loadingAction.value = false
+    }
+  }
 
   return {
     planificaciones,
     loading,
     error,
+    loadingAction,
     totalPlanificaciones,
     planificacionesAprobadas,
     planificacionesPendientes,
     fetchPlanificaciones,
+    crearPlanificacion,
     clearErrors
   }
 })

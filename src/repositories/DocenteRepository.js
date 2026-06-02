@@ -13,6 +13,10 @@
 //     const response = await api.get('/planificaciones')
 //     return response.data
 //   }
+    // async storePlanificacion(formData) {
+    // const response = await api.post('/planificaciones', formData)
+    // return response.data
+  // }
 // }
 
 // export default new DocenteRepository()

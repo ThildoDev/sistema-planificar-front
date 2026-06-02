@@ -22,6 +22,11 @@ const router = createRouter({
       name: 'DocenteDashboard',
       component: () => import('@/views/docente/DocenteDashboard.vue')
     },
+    {
+    path: '/docente/planificaciones/crear',
+    name: 'CrearPlanificacion',
+    component: () => import('@/views/docente/CrearPlanificacion.vue')
+  }
   ],
 })
 
