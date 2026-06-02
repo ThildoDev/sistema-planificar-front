@@ -1,18 +1,33 @@
-import { storeToRefs } from 'pinia';
-import { usePlanificacionStore } from '@/stores/planificacion';
+import { usePlanificacionStore } from '@/stores/planificacion'
+import { storeToRefs } from 'pinia'
 
+/**
+ * usePlanificacion
+ * Composable para conectar las vistas del Docente con el Store
+ */
 export function usePlanificacion() {
-    const store = usePlanificacionStore();
-    const { planificaciones, loading, error } = storeToRefs(store);
+  const store = usePlanificacionStore()
 
-    const cargarPlanificaciones = async () => {
-        await store.fetchPlanificaciones();
-    };
+  const {
+    planificaciones,
+    loading,
+    error,
+    totalPlanificaciones,
+    planificacionesAprobadas,
+    planificacionesPendientes
+  } = storeToRefs(store)
 
-    return {
-        planificaciones,
-        loading,
-        error,
-        cargarPlanificaciones
-    };
+  return {
+    // Estado
+    planificaciones,
+    loading,
+    error,
+    // Getters
+    totalPlanificaciones,
+    planificacionesAprobadas,
+    planificacionesPendientes,
+    // Acciones
+    fetchPlanificaciones: store.fetchPlanificaciones,
+    clearErrors: store.clearErrors
+  }
 }

@@ -1,25 +1,103 @@
-import { defineStore } from 'pinia';
-import DocenteRepository from '@/repositories/DocenteRepository';
+// import { defineStore } from 'pinia'
+// import { ref, computed } from 'vue'
+// // import DocenteRepository from '@/repositories/DocenteRepository'    sacar comentario para usar la petición real al backend, dejarlo comentado para pruebas con datos simulados
 
-export const usePlanificacionStore = defineStore('planificacion', {
-    state: () => ({
-        planificaciones: [],
-        loading: false,
-        error: null
-    }),
+// export const usePlanificacionStore = defineStore('planificacion', () => {
+//   // ─── Estado ───────────────────────────────────────────────────────────────
+//   const planificaciones = ref([])
+//   const loading = ref(false)
+//   const error = ref(null)
 
-    actions: {
-        async fetchPlanificaciones() {
-            this.loading = true;
-            this.error = null;
-            try {
-                const response = await DocenteRepository.getPlanificaciones();
-                this.planificaciones = response.data;
-            } catch (err) {
-                this.error = err.message || 'Error al cargar las planificaciones';
-            } finally {
-                this.loading = false;
-            }
-        }
+//   // ─── Getters ──────────────────────────────────────────────────────────────
+//   const totalPlanificaciones = computed(() => planificaciones.value.length)
+
+//   const planificacionesAprobadas = computed(() =>
+//     planificaciones.value.filter((p) => p.estados_anual === 'Aprobado').length
+//   )
+
+//   const planificacionesPendientes = computed(() =>
+//     planificaciones.value.filter((p) => p.estados_anual === 'Pendiente').length
+//   )
+
+//   // ─── Helpers ──────────────────────────────────────────────────────────────
+//   function clearErrors() {
+//     error.value = null
+//   }
+
+//   // ─── Acciones ─────────────────────────────────────────────────────────────
+//   async function fetchPlanificaciones() {
+//     loading.value = true
+//     clearErrors()
+//     try {
+//       const data = await DocenteRepository.getPlanificaciones()
+//       // Adaptación flexible si el backend envuelve la respuesta en data o data.data
+//       planificaciones.value = Array.isArray(data) ? data : (data.data ?? [])
+//     } catch (err) {
+//       error.value = err.response?.data?.message || 'Error al cargar las planificaciones.'
+//     } finally {
+//       loading.value = false
+//     }
+//   }
+//   return {
+//     // Estado
+//     planificaciones,
+//     loading,
+//     error,
+//     // Getters
+//     totalPlanificaciones,
+//     planificacionesAprobadas,
+//     planificacionesPendientes,
+//     // Acciones
+//     fetchPlanificaciones,
+//     clearErrors
+//   }
+// })
+
+import { defineStore } from 'pinia'
+import { ref, computed } from 'vue'
+import DocenteRepository from '@/repositories/DocenteRepository'
+
+export const usePlanificacionStore = defineStore('planificacion', () => {
+  const planificaciones = ref([])
+  const loading = ref(false)
+  const error = ref(null)
+
+  const totalPlanificaciones = computed(() => planificaciones.value.length)
+
+  const planificacionesAprobadas = computed(() =>
+    planificaciones.value.filter((p) => p.estados_anual === 'Aprobado').length
+  )
+
+  const planificacionesPendientes = computed(() =>
+    planificaciones.value.filter((p) => p.estados_anual === 'Pendiente' || p.estados_anual === 'Observado' || p.estados_anual === 'A corregir').length
+  )
+
+  function clearErrors() {
+    error.value = null
+  }
+
+  async function fetchPlanificaciones() {
+    loading.value = true
+    clearErrors()
+    try {
+      // Llama al repositorio (que actualmente devuelve los datos simulados)
+      const data = await DocenteRepository.getPlanificaciones()
+      planificaciones.value = Array.isArray(data) ? data : (data.data ?? [])
+    } catch (err) {
+      error.value = err.message || 'Error al cargar las planificaciones.'
+    } finally {
+      loading.value = false
     }
-});
+  }
+
+  return {
+    planificaciones,
+    loading,
+    error,
+    totalPlanificaciones,
+    planificacionesAprobadas,
+    planificacionesPendientes,
+    fetchPlanificaciones,
+    clearErrors
+  }
+})
