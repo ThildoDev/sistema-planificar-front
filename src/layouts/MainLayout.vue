@@ -1,4 +1,137 @@
 <template>
+  <div class="flex h-screen bg-[#f8fafc] font-sans antialiased text-gray-800">
+    
+    <aside class="w-64 bg-[#1e1e1e] text-gray-300 flex flex-col justify-between shadow-2xl border-r border-zinc-800">
+      <div>
+        <div class="h-16 flex items-center justify-center border-b border-zinc-800 px-6">
+          <h1 class="text-xs uppercase tracking-widest font-semibold text-gray-400">
+            ASDASDAD
+          </h1>
+        </div>
+
+        <div class="flex flex-col items-center py-6 border-b border-zinc-800 bg-black/10">
+          <div class="w-20 h-20 rounded-full overflow-hidden border-2 border-zinc-700 shadow-md mb-3">
+            <img 
+              src="https://via.placeholder.com/150" 
+              alt="User Avatar" 
+              class="w-full h-full object-cover"
+            />
+          </div>
+          <p class="text-sm font-medium text-gray-200">nOMBRE DE USUARIO</p>
+          
+          <div class="flex gap-4 mt-3 text-gray-500">
+            <button class="hover:text-amber-500 transition-colors">
+              <span class="text-sm">⚙️</span>
+            </button>
+            <button @click="logout" class="hover:text-red-400 transition-colors">
+              <span class="text-sm">❌</span>
+            </button>
+          </div>
+        </div>
+
+        <nav class="mt-4 px-2 space-y-1">
+          <router-link 
+            to="/docente/dashboard" 
+            class="flex items-center justify-between px-4 py-3 rounded text-sm text-gray-400 hover:bg-zinc-800 hover:text-white transition-all duration-150 group"
+            active-class="bg-zinc-800/80 text-white font-medium border-l-4 border-cyan-500 pl-3"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-xs opacity-70 group-hover:scale-110 transition-transform">📊</span>
+              <span>Dashboard</span>
+            </div>
+          </router-link>
+          
+          <router-link 
+            to="/administration" 
+            class="flex items-center justify-between px-4 py-3 rounded text-sm text-gray-400 hover:bg-zinc-800 hover:text-white transition-all duration-150 group"
+            active-class="bg-zinc-800/80 text-white font-medium border-l-4 border-cyan-500 pl-3"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-xs opacity-70 group-hover:scale-110 transition-transform">💼</span>
+              <span>Administration</span>
+            </div>
+            <span class="text-[10px] text-gray-600">▼</span>
+          </router-link>
+
+          <router-link 
+            to="/users" 
+            class="flex items-center justify-between px-4 py-3 rounded text-sm text-gray-400 hover:bg-zinc-800 hover:text-white transition-all duration-150 group"
+            active-class="bg-zinc-800/80 text-white font-medium border-l-4 border-cyan-500 pl-3"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-xs opacity-70 group-hover:scale-110 transition-transform">👥</span>
+              <span>Users</span>
+            </div>
+            <span class="text-[10px] text-gray-600">▼</span>
+          </router-link>
+          
+          <router-link 
+            to="/settings" 
+            class="flex items-center justify-between px-4 py-3 rounded text-sm text-gray-400 hover:bg-zinc-800 hover:text-white transition-all duration-150 group"
+            active-class="bg-zinc-800/80 text-white font-medium border-l-4 border-cyan-500 pl-3"
+          >
+            <div class="flex items-center gap-3">
+              <span class="text-xs opacity-70 group-hover:scale-110 transition-transform">🌍</span>
+              <span>Settings School</span>
+            </div>
+            <span class="text-[10px] text-gray-600">▼</span>
+          </router-link>
+        </nav>
+      </div>
+
+      <div class="p-4 border-t border-zinc-800 text-center">
+        <p class="text-[10px] text-zinc-600 tracking-wider">PlanificAR v1.0</p>
+      </div>
+    </aside>
+
+    <div class="flex-1 flex flex-col overflow-hidden">
+      
+      <header class="h-16 bg-[#0f0f12] flex items-center justify-between px-6 shadow-md z-10">
+        <div class="flex items-center gap-4">
+          <button class="text-gray-400 hover:text-white text-lg font-bold">
+            ⋮
+          </button>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <span class="text-xs text-zinc-500 font-medium">Ciclo Lectivo 2026</span>
+        </div>
+      </header>
+
+      <main class="flex-1 overflow-x-hidden overflow-y-auto p-8 bg-[#f8fafc]">
+        <router-view v-slot="{ Component }">
+          <transition name="fade" mode="out-in">
+            <component :is="Component" />
+          </transition>
+        </router-view>
+      </main>
+
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const logout = () => {
+  console.log('Cerrando sesión...')
+  router.push('/login')
+}
+</script>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+</style>
+<!-- <template>
   <div class="flex h-screen bg-gray-100 font-sans antialiased text-gray-800">
 
     <aside class="w-64 bg-indigo-900 text-white flex flex-col justify-between shadow-xl">
@@ -98,4 +231,4 @@ const logout = () => {
 .fade-leave-to {
   opacity: 0;
 }
-</style>
+</style> -->
