@@ -1,4 +1,4 @@
-// src/repositories/AuthRepository.js
+
 import api from '@/plugins/axios'
 
 export default {

@@ -1,4 +1,4 @@
-// src/stores/auth.js
+
 import { defineStore } from 'pinia'
 import AuthRepository from '@/repositories/AuthRepository'
 
