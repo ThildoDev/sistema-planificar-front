@@ -11,8 +11,9 @@ export default {
 
       return {
         user: response.data.user,
-        token: response.data.token
-      }
+        token: response.data.access_token
+}
+
     } catch (error) {
       throw error
     }
