@@ -18,6 +18,8 @@ import HelloWorld from './components/HelloWorld.vue'
   </header>
 
   <RouterView />
+   <!-- 🔥 Toast global SIEMPRE visible -->
+  <ToastNotification />
 </template>
 
 <style scoped>
