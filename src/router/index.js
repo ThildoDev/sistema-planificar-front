@@ -7,7 +7,7 @@ import DirectorLayout from '@/layouts/DirectorLayout.vue'
 import DocenteLayout from '@/layouts/DocenteLayout.vue'
 
 import LoginView from '@/views/auth/LoginView.vue'
-import Error403 from '@/views/errors/Error403.vue'
+import Error403 from '@/views/Error403.vue'
 import SinAcceso from '@/views/SinAcceso.vue'
 
 
