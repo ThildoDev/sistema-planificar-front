@@ -1,4 +1,6 @@
+// src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
+
 import {useAuthStore} from '@/stores/auth'
 
 import AuthLayout from '@/layouts/AuthLayout.vue'
@@ -72,3 +74,4 @@ router.beforeEach((to, from, next) => {
   next()
 })
 export default router
+
