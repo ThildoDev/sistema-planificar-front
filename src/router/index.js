@@ -1,71 +1,77 @@
 // src/router/index.js
 import { createRouter, createWebHistory } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+
+import {useAuthStore} from '@/stores/auth'
+
+import AuthLayout from '@/layouts/AuthLayout.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
+import DirectorLayout from '@/layouts/DirectorLayout.vue'
+import DocenteLayout from '@/layouts/DocenteLayout.vue'
 
 import LoginView from '@/views/auth/LoginView.vue'
-import ForbiddenView from '@/views/errors/ForbiddenView.vue'
+import Error403 from '@/views/Error403.vue'
+import SinAcceso from '@/views/SinAcceso.vue'
 
-const routes = [
-  {
-    path: '/login',
-    name: 'login',
-    component: LoginView,
-    meta: { public: true }
-  },
-
-  // DOCENTE
-  {
-    path: '/docente/dashboard',
-    meta: { role: 'docente' },
-    component: () => import('@/views/docente/DashboardView.vue')
-  },
-
-  // DIRECTOR
-  {
-    path: '/director/dashboard',
-    meta: { role: 'director' },
-    component: () => import('@/views/director/DashboardView.vue')
-  },
-
-  // ADMIN
-  {
-    path: '/admin/dashboard',
-    meta: { role: 'admin' },
-    component: () => import('@/views/admin/DashboardView.vue')
-  },
-
-  {
-    path: '/403',
-    component: ForbiddenView,
-    meta: { public: true }
-  }
-]
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
+  routes: [
+    {
+      path: '/login',
+      component: AuthLayout,
+      children: [{ path: '', component: LoginView }],
+      meta: { public: true }
+    },
+    // ADMIN
+    {
+      path: '/admin',
+      component: AdminLayout,
+      meta: { role: 'admin' },
+      children: [
+        { path: 'dashboard', component: () => import('@/views/admin/AdminDashboard.vue') },
+        { path: 'usuarios', component: () => import('@/views/admin/AdminUsuarios.vue') }
+      ]
+    },
+    // DIRECTOR
+    {
+      path: '/director',
+      component: DirectorLayout,
+      meta: { role: 'director' },
+      children: [
+        { path: 'dashboard', component: () => import('@/views/director/DirectorDashboard.vue') },
+        { path: 'planificaciones', component: () => import('@/views/director/PlanificacionesRecibidas.vue') }
+      ]
+    },
+    // DOCENTE
+    {
+      path: '/docente',
+      component: DocenteLayout,
+      meta: { role: 'docente' },
+      children: [
+        { path: 'dashboard', component: () => import('@/views/docente/DocenteDashboard.vue') },
+        { path: 'planificaciones', component: () => import('@/views/docente/PlanificacionesTable.vue') }
+      ]
+    },
+    // Rutas públicas o sin rol específico
+    { path: '/403', component: Error403, meta: { public: true } },
+    { path: '/sin-acceso', component: SinAcceso, meta: { public: true } }
+  ],
 })
-
 // GUARD GLOBAL
 router.beforeEach((to, from, next) => {
   const auth = useAuthStore()
 
-  // Cargar sesión si no está cargada
   if (!auth.token) auth.loadSession()
 
-  // Rutas públicas → permitir
   if (to.meta.public) return next()
 
-  // Si no está autenticado → login
   if (!auth.isAuthenticated) return next('/login')
 
-  // Si la ruta requiere rol → validar
   if (to.meta.role && to.meta.role !== auth.userRole) {
     return next('/403')
   }
 
   next()
 })
-
 export default router
 
