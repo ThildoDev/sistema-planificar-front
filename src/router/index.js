@@ -1,23 +1,74 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import {useAuthStore} from '@/stores/auth'
+
+import AuthLayout from '@/layouts/AuthLayout.vue'
+import AdminLayout from '@/layouts/AdminLayout.vue'
+import DirectorLayout from '@/layouts/DirectorLayout.vue'
+import DocenteLayout from '@/layouts/DocenteLayout.vue'
+
+import LoginView from '@/views/auth/LoginView.vue'
+import Error403 from '@/views/errors/Error403.vue'
+import SinAcceso from '@/views/SinAcceso.vue'
+
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     {
-      path: '/',
-      name: 'home',
-      component: HomeView,
+      path: '/login',
+      component: AuthLayout,
+      children: [{ path: '', component: LoginView }],
+      meta: { public: true }
     },
+    // ADMIN
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
+      path: '/admin',
+      component: AdminLayout,
+      meta: { role: 'admin' },
+      children: [
+        { path: 'dashboard', component: () => import('@/views/admin/AdminDashboard.vue') },
+        { path: 'usuarios', component: () => import('@/views/admin/AdminUsuarios.vue') }
+      ]
     },
+    // DIRECTOR
+    {
+      path: '/director',
+      component: DirectorLayout,
+      meta: { role: 'director' },
+      children: [
+        { path: 'dashboard', component: () => import('@/views/director/DirectorDashboard.vue') },
+        { path: 'planificaciones', component: () => import('@/views/director/PlanificacionesRecibidas.vue') }
+      ]
+    },
+    // DOCENTE
+    {
+      path: '/docente',
+      component: DocenteLayout,
+      meta: { role: 'docente' },
+      children: [
+        { path: 'dashboard', component: () => import('@/views/docente/DocenteDashboard.vue') },
+        { path: 'planificaciones', component: () => import('@/views/docente/PlanificacionesTable.vue') }
+      ]
+    },
+    // Rutas públicas o sin rol específico
+    { path: '/403', component: Error403, meta: { public: true } },
+    { path: '/sin-acceso', component: SinAcceso, meta: { public: true } }
   ],
 })
+// GUARD GLOBAL
+router.beforeEach((to, from, next) => {
+  const auth = useAuthStore()
 
+  if (!auth.token) auth.loadSession()
+
+  if (to.meta.public) return next()
+
+  if (!auth.isAuthenticated) return next('/login')
+
+  if (to.meta.role && to.meta.role !== auth.userRole) {
+    return next('/403')
+  }
+
+  next()
+})
 export default router
