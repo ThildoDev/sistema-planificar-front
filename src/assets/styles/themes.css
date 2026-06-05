@@ -91,3 +91,29 @@
   --accent: #00eaff;
 }
 
+/* ============================
+   TEMA ARGENTINA 🇦🇷
+============================ */
+[data-theme="argentina"] {
+  --bg: #eaf6ff;                 /* Celeste muy suave */
+  --bg-soft: #ffffff;            /* Blanco limpio */
+  --text: #0a1a2b;               /* Azul oscuro elegante */
+  --text-light: #3b4b5c;
+
+  --primary: #75aadb;            /* Celeste AFA */
+  --primary-light: #a6d4ff;
+
+  --accent: #ffd700;             /* Dorado del campeón */
+
+  --shadow: 0 4px 14px rgba(0, 90, 160, 0.15);
+
+  /* Opcional: patrón sutil inspirado en la camiseta */
+  --pattern: repeating-linear-gradient(
+      90deg,
+      rgba(117,170,219,0.12) 0px,
+      rgba(117,170,219,0.12) 80px,
+      rgba(255,255,255,0.12) 80px,
+      rgba(255,255,255,0.12) 160px
+  );
+}
+
