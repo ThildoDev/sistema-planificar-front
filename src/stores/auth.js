@@ -1,13 +1,11 @@
-
 import { defineStore } from 'pinia'
-import AuthRepository from '@/repositories/AuthRepository'
+import api from '@/plugins/axios'
+import { useToastStore } from '@/stores/toast'
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
-    token: null,
-    loading: false,
-    error: null
+    token: null
   }),
 
   getters: {
@@ -17,52 +15,30 @@ export const useAuthStore = defineStore('auth', {
 
   actions: {
     async login(credentials) {
-      this.loading = true
-      this.error = null
+      const toast = useToastStore()
 
       try {
-        const { user, token } = await AuthRepository.login(credentials)
+        const { data } = await api.post('/login', credentials)
 
-        this.user = user
-        this.token = token
+        this.token = data.access_token
+        this.user = data.user
 
-        // Guardar sesión
-        localStorage.setItem('token', token)
-        localStorage.setItem('user', JSON.stringify(user))
-
-        return true
-      } catch (err) {
-        this.error = err.response?.data?.message || 'Error al iniciar sesión'
-        return false
-      } finally {
-        this.loading = false
+        toast.showToast('Inicio de sesión exitoso', 'success')
+      } catch (error) {
+        toast.showToast('Credenciales incorrectas', 'error')
+        throw error
       }
     },
 
-    async logout() {
-      try {
-        await AuthRepository.logout()
-      } catch (_) {
-        // Ignorar errores del backend
-      }
-
-      this.user = null
+    clearSession() {
       this.token = null
-
-      localStorage.removeItem('token')
-      localStorage.removeItem('user')
-
-      window.location.href = '/login'
+      this.user = null
     },
 
-    loadSession() {
-      const token = localStorage.getItem('token')
-      const user = localStorage.getItem('user')
-
-      if (token && user) {
-        this.token = token
-        this.user = JSON.parse(user)
-      }
+    logout() {
+      const toast = useToastStore()
+      this.clearSession()
+      toast.showToast('Sesión cerrada correctamente', 'info')
     }
   }
 })
