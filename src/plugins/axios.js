@@ -2,9 +2,10 @@
 import axios from 'axios'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
+import router from '@/router'
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8000/api',
+  baseURL: import.meta.env.VITE_API_URL,
   withCredentials: true,
 
 })
@@ -25,16 +26,27 @@ api.interceptors.response.use(
     const toast = useToastStore()
     const status = error.response?.status
 
-    // Token expirado o sesión inválida
+    // 401 — Sesión expirada
     if (status === 401) {
       toast.showToast('Sesión expirada. Iniciá sesión nuevamente.', 'error')
+
       const auth = useAuthStore()
-      auth.logout()
-    } else if (status === 403) {
+      auth.clearSession()
+
+      router.push('/login')
+    }
+    // 403 — Sin permisos
+    if (status === 403) {
       toast.showToast('No tenés permisos para acceder.', 'warning')
-    } else if (status === 422) {
-      toast.showToast('Error de validación. Revisá los datos.', 'info')
-    } else {
+    }
+    // 422 — Errores de validación
+    if (status === 422) {
+      const errors = error.response.data.errors
+      const first = Object.values(errors)[0][0]
+      toast.showToast(first, 'warning')
+    }
+    // 500+ — Error inesperado
+    if (!status || status >= 500) {
       toast.showToast('Error inesperado en el servidor.', 'error')
     }
 
