@@ -25,7 +25,7 @@ const router = createRouter({
     // ADMIN
     {
       path: '/admin',
-      component: AdminLayout,
+      component: () => import('@/layouts/ArgentinaLayout.vue'),
       meta: { role: 'admin' },
       children: [
         { path: 'dashboard', component: () => import('@/views/admin/AdminDashboard.vue') },
@@ -35,7 +35,7 @@ const router = createRouter({
     // DIRECTOR
     {
       path: '/director',
-      component: DirectorLayout,
+      component: () => import('@/layouts/ArgentinaLayout.vue'),
       meta: { role: 'director' },
       children: [
         { path: 'dashboard', component: () => import('@/views/director/DirectorDashboard.vue') },
@@ -45,7 +45,7 @@ const router = createRouter({
     // DOCENTE
     {
       path: '/docente',
-      component: DocenteLayout,
+      component: () => import('@/layouts/ArgentinaLayout.vue'),
       meta: { role: 'docente' },
       children: [
         { path: 'dashboard', component: () => import('@/views/docente/DocenteDashboard.vue') },
