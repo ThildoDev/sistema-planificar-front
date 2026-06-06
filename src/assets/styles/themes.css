@@ -1,20 +1,15 @@
 /* ============================
-   TEMA CLARO (DEFAULT)
+   TEMA CLARO
 ============================ */
 :root {
   --bg: #f8fafc;
   --bg-soft: #ffffff;
   --text: #1e293b;
   --text-light: #475569;
-
   --primary: #4f46e5;
   --primary-light: #6366f1;
-
   --accent: #0ea5e9;
-
-  --radius: 10px;
   --shadow: 0 4px 12px rgba(0,0,0,0.06);
-  --transition: 0.25s ease;
 }
 
 /* ============================
@@ -25,27 +20,22 @@
   --bg-soft: #1e293b;
   --text: #e2e8f0;
   --text-light: #94a3b8;
-
   --primary: #818cf8;
   --primary-light: #a5b4fc;
-
   --accent: #38bdf8;
-
   --shadow: 0 4px 12px rgba(0,0,0,0.4);
 }
 
 /* ============================
-   TEMA INTERMEDIO (AMBIENT)
+   TEMA AMBIENT
 ============================ */
 [data-theme="ambient"] {
   --bg: #e8ecf5;
   --bg-soft: #f1f5f9;
   --text: #1e293b;
   --text-light: #475569;
-
   --primary: #64748b;
   --primary-light: #94a3b8;
-
   --accent: #0ea5e9;
 }
 
@@ -56,10 +46,8 @@
   --bg: #fafafa;
   --bg-soft: #ffffff;
   --text: #4b5563;
-
   --primary: #f472b6;
   --primary-light: #f9a8d4;
-
   --accent: #93c5fd;
 }
 
@@ -70,10 +58,8 @@
   --bg: #f4f7fb;
   --bg-soft: #ffffff;
   --text: #1e293b;
-
   --primary: #0d6efd;
   --primary-light: #3d8bfd;
-
   --accent: #20c997;
 }
 
@@ -84,10 +70,8 @@
   --bg: #0a0a0f;
   --bg-soft: #11111a;
   --text: #e0e0ff;
-
   --primary: #7c3aed;
   --primary-light: #a78bfa;
-
   --accent: #00eaff;
 }
 
@@ -95,19 +79,15 @@
    TEMA ARGENTINA 🇦🇷
 ============================ */
 [data-theme="argentina"] {
-  --bg: #eaf6ff;                 /* Celeste muy suave */
-  --bg-soft: #ffffff;            /* Blanco limpio */
-  --text: #0a1a2b;               /* Azul oscuro elegante */
+  --bg: #eaf6ff;
+  --bg-soft: #ffffff;
+  --text: #0a1a2b;
   --text-light: #3b4b5c;
-
-  --primary: #75aadb;            /* Celeste AFA */
+  --primary: #75aadb;
   --primary-light: #a6d4ff;
-
-  --accent: #ffd700;             /* Dorado del campeón */
-
+  --accent: #ffd700;
   --shadow: 0 4px 14px rgba(0, 90, 160, 0.15);
 
-  /* Opcional: patrón sutil inspirado en la camiseta */
   --pattern: repeating-linear-gradient(
       90deg,
       rgba(117,170,219,0.12) 0px,
@@ -117,3 +97,15 @@
   );
 }
 
+/* Bandera ondeando */
+[data-theme="argentina"] body {
+  background: var(--pattern), var(--bg);
+  background-size: 200% 200%;
+  animation: wave 8s ease-in-out infinite;
+}
+
+@keyframes wave {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
