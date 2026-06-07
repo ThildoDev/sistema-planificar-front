@@ -1,118 +1,241 @@
+<!-- src/components/director/FiltrosPlanificacion.vue -->
 <template>
-  <div class="filtros-bar">
-    <div class="filter-group">
-      <label class="filter-label">Estado:</label>
-      <select v-model="filtroEstado" class="filter-select">
-        <option value="todos">Todos</option>
-        <option value="Pendiente">Pendiente</option>
-        <option value="Revisado">En Revisión</option>
-        <option value="Aprobado">Aprobada</option>
-        <option value="Rechazado">Con Observaciones</option>
-      </select>
+  <div class="filtros-panel">
+    <div class="filtros-header">
+      <h3 class="filtros-titulo">
+        <Filter class="filtros-icon" />
+        Filtros
+      </h3>
+      <button v-if="hayFiltrosActivos" class="btn-limpiar" @click="limpiar">
+        <X class="btn-icon" />
+        Limpiar filtros
+      </button>
     </div>
-    <div class="search-wrapper">
-      <Search :size="15" class="search-icon" />
-      <input
-        v-model="filtroSearch"
-        type="text"
-        class="search-input"
-        placeholder="Buscar por docente o área..."
-      />
+
+    <div class="filtros-grid">
+      <!-- Búsqueda por docente -->
+      <div class="filtro-grupo">
+        <label class="filtro-label" for="f-docente">Docente</label>
+        <input
+          id="f-docente"
+          v-model="form.docente"
+          type="text"
+          class="filtro-input"
+          placeholder="Nombre o apellido..."
+          @input="emitirCambio"
+        />
+      </div>
+
+      <!-- Área -->
+      <div class="filtro-grupo">
+        <label class="filtro-label" for="f-area">Área</label>
+        <select id="f-area" v-model="form.area" class="filtro-select" @change="emitirCambio">
+          <option value="">Todas las áreas</option>
+          <option v-for="area in areasDisponibles" :key="area" :value="area">
+            {{ area }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Tipo de planificación -->
+      <div class="filtro-grupo">
+        <label class="filtro-label" for="f-tipo">Tipo</label>
+        <select id="f-tipo" v-model="form.tipo" class="filtro-select" @change="emitirCambio">
+          <option value="">Todos los tipos</option>
+          <option value="Anual">Anual</option>
+          <option value="Trimestral">Trimestral</option>
+        </select>
+      </div>
+
+      <!-- Estado -->
+      <div class="filtro-grupo">
+        <label class="filtro-label" for="f-estado">Estado</label>
+        <select id="f-estado" v-model="form.estado" class="filtro-select" @change="emitirCambio">
+          <option value="">Todos los estados</option>
+          <option v-for="e in estados" :key="e" :value="e">{{ e }}</option>
+        </select>
+      </div>
+
+      <!-- Fecha desde -->
+      <div class="filtro-grupo">
+        <label class="filtro-label" for="f-desde">Desde</label>
+        <input
+          id="f-desde"
+          v-model="form.fecha_desde"
+          type="date"
+          class="filtro-input"
+          @change="emitirCambio"
+        />
+      </div>
+
+      <!-- Fecha hasta -->
+      <div class="filtro-grupo">
+        <label class="filtro-label" for="f-hasta">Hasta</label>
+        <input
+          id="f-hasta"
+          v-model="form.fecha_hasta"
+          type="date"
+          class="filtro-input"
+          @change="emitirCambio"
+        />
+      </div>
     </div>
-    <button class="btn-reset" @click="resetFiltros"><X :size="14" /> Limpiar</button>
   </div>
 </template>
 
 <script setup>
-import { Search, X } from 'lucide-vue-next'
-import { useRevision } from '@/composables/useRevision'
+import { ref, computed } from 'vue'
+import { Filter, X } from 'lucide-vue-next'
 
-const { filtroEstado, filtroSearch } = useRevision()
+const props = defineProps({
+  /** Áreas disponibles (extraídas de las planificaciones cargadas) */
+  areasDisponibles: {
+    type: Array,
+    default: () => [
+      'Matemáticas',
+      'Lengua y Literatura',
+      'Ciencias Naturales',
+      'Ciencias Sociales',
+      'Educación Física',
+      'Arte y Educación Musical',
+    ],
+  },
+})
 
-const resetFiltros = () => {
-  filtroEstado.value = 'todos'
-  filtroSearch.value = ''
+const emit = defineEmits(['cambio', 'limpiar'])
+
+const estados = [
+  'Pendiente',
+  'En Proceso',
+  'Revisado',
+  'Aprobado',
+  'Rechazado',
+  'Archivado',
+  'En Espera',
+  'Finalizado',
+]
+
+const form = ref({
+  docente: '',
+  area: '',
+  tipo: '',
+  estado: '',
+  fecha_desde: '',
+  fecha_hasta: '',
+})
+
+const hayFiltrosActivos = computed(() => Object.values(form.value).some((v) => v !== ''))
+
+function emitirCambio() {
+  // Eliminar claves vacías antes de emitir
+  const filtrosLimpios = Object.fromEntries(Object.entries(form.value).filter(([, v]) => v !== ''))
+  emit('cambio', filtrosLimpios)
+}
+
+function limpiar() {
+  form.value = {
+    docente: '',
+    area: '',
+    tipo: '',
+    estado: '',
+    fecha_desde: '',
+    fecha_hasta: '',
+  }
+  emit('limpiar')
 }
 </script>
 
 <style scoped>
-.filtros-bar {
-  display: flex;
-  align-items: center;
-  gap: 0.875rem;
-  flex-wrap: wrap;
-  padding: 1rem 1.25rem;
-  background: #f8fafc;
-  border-radius: 10px;
+.filtros-panel {
+  background: #ffffff;
   border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-.filter-group {
+.filtros-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.filtros-titulo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-}
-.filter-label {
-  font-size: 0.8125rem;
+  gap: 0.4rem;
+  font-size: 0.9375rem;
   font-weight: 600;
-  color: #64748b;
-  white-space: nowrap;
+  color: #1e293b;
+  margin: 0;
 }
 
-.filter-select {
-  height: 36px;
-  padding: 0 0.75rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  color: #374151;
-  background: #fff;
-  outline: none;
-  cursor: pointer;
+.filtros-icon {
+  width: 1rem;
+  height: 1rem;
+  color: #6366f1;
 }
 
-.search-wrapper {
-  position: relative;
-  flex: 1;
-  min-width: 200px;
-}
-.search-icon {
-  position: absolute;
-  left: 0.625rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #94a3b8;
-  pointer-events: none;
-}
-.search-input {
-  width: 100%;
-  height: 36px;
-  padding: 0 0.75rem 0 2rem;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  background: #fff;
-  outline: none;
-  transition: border-color 0.2s;
-}
-.search-input:focus {
-  border-color: #2563eb;
-}
-
-.btn-reset {
-  display: flex;
+.btn-limpiar {
+  display: inline-flex;
   align-items: center;
-  gap: 0.25rem;
-  padding: 0.4rem 0.75rem;
-  border-radius: 8px;
+  gap: 0.3rem;
+  padding: 0.3rem 0.75rem;
+  background: transparent;
   border: 1px solid #e2e8f0;
-  background: #fff;
+  border-radius: 0.375rem;
   font-size: 0.8125rem;
   color: #64748b;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.15s;
 }
-.btn-reset:hover {
-  background: #f1f5f9;
+
+.btn-limpiar:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.btn-icon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.filtro-grupo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.filtro-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #475569;
+}
+
+.filtro-input,
+.filtro-select {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  color: #1e293b;
+  background: #f8fafc;
+  transition: border-color 0.15s;
+  width: 100%;
+}
+
+.filtro-input:focus,
+.filtro-select:focus {
+  outline: none;
+  border-color: #6366f1;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 </style>

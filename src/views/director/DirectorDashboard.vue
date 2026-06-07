@@ -1,192 +1,253 @@
+<!-- src/views/director/DirectorDashboard.vue -->
 <template>
-  <div class="dashboard-page">
-    <div class="page-header">
-      <h1 class="page-title">Panel de Dirección</h1>
-      <p class="page-subtitle">Supervisión pedagógica — Ciclo {{ añoActual }}</p>
+  <div class="director-dashboard">
+    <!-- ── CABECERA ── -->
+    <div class="dashboard-header">
+      <div class="header-content">
+        <h1 class="dashboard-title">
+          <ClipboardList class="title-icon" />
+          Panel de Dirección
+        </h1>
+        <p class="dashboard-subtitle">
+          Bienvenido, <strong>{{ nombreDirector }}</strong> —
+          {{ fechaHoy }}
+        </p>
+      </div>
+
+      <button class="btn-primary" @click="irAPlanificaciones">
+        <Eye class="btn-icon" />
+        Ver todas las planificaciones
+      </button>
     </div>
 
-    <!-- KPI Cards -->
-    <div class="kpi-grid">
-      <div class="kpi-card kpi-yellow">
-        <div class="kpi-icon"><Clock :size="24" /></div>
-        <div class="kpi-info">
-          <span class="kpi-value">{{ pendientesRevision }}</span>
-          <span class="kpi-label">Pendientes de Revisión</span>
-        </div>
-      </div>
-      <div class="kpi-card kpi-green">
-        <div class="kpi-icon"><CheckCircle2 :size="24" /></div>
-        <div class="kpi-info">
-          <span class="kpi-value">{{ aprobadas }}</span>
-          <span class="kpi-label">Aprobadas</span>
-        </div>
-      </div>
-      <div class="kpi-card kpi-red">
-        <div class="kpi-icon"><MessageSquareWarning :size="24" /></div>
-        <div class="kpi-info">
-          <span class="kpi-value">{{ conObservaciones }}</span>
-          <span class="kpi-label">Con Observaciones</span>
-        </div>
-      </div>
-    </div>
+    <!-- ── KPI CARDS ── -->
+    <section class="kpi-grid">
+      <KpiCard
+        title="Pendientes de revisión"
+        :value="stats.pendientes"
+        :loading="loadingStats"
+        color="yellow"
+        icon="clock"
+        subtitle="Esperan tu revisión"
+      />
+      <KpiCard
+        title="Aprobadas"
+        :value="stats.aprobadas"
+        :loading="loadingStats"
+        color="green"
+        icon="check-circle"
+        subtitle="Este período"
+      />
+      <KpiCard
+        title="Rechazadas"
+        :value="stats.rechazadas"
+        :loading="loadingStats"
+        color="red"
+        icon="x-circle"
+        subtitle="Con observaciones"
+      />
+      <KpiCard
+        title="Total docentes"
+        :value="stats.docentes"
+        :loading="loadingStats"
+        color="blue"
+        icon="users"
+        subtitle="Activos en el sistema"
+      />
+    </section>
 
-    <!-- Feedback -->
-    <Transition name="fade">
-      <div v-if="error" class="error-banner">
-        <AlertCircle :size="18" /> <span>{{ error }}</span>
-      </div>
-    </Transition>
-
-    <!-- Filtros + Tabla -->
-    <div class="section-card">
+    <!-- ── PLANIFICACIONES RECIENTES ── -->
+    <section class="section-card">
       <div class="section-header">
-        <h2 class="section-title"><FileText :size="18" /> Planificaciones Recibidas</h2>
-        <button class="btn-refresh" @click="fetchPlanificaciones()" :disabled="loading">
-          <RefreshCw :size="14" :class="{ spinning: loading }" />
-          Actualizar
+        <h2 class="section-title">
+          <FileText class="section-icon" />
+          Planificaciones recientes
+        </h2>
+        <router-link to="/director/planificaciones" class="link-ver-todas">
+          Ver todas →
+        </router-link>
+      </div>
+
+      <!-- Filtros rápidos de estado -->
+      <div class="filtros-rapidos">
+        <button
+          v-for="estado in estadosFiltro"
+          :key="estado.value"
+          class="chip-filtro"
+          :class="{ 'chip-activo': filtroActivo === estado.value }"
+          @click="cambiarFiltro(estado.value)"
+        >
+          {{ estado.label }}
         </button>
       </div>
 
-      <FiltrosPlanificacion />
-      <PlanificacionesRecibidasTable />
-    </div>
+      <!-- Tabla de planificaciones -->
+      <PlanificacionesRecibidasTable
+        :planificaciones="planificacionesFiltradas"
+        :loading="loading"
+        compact
+        @revisar="irARevision"
+      />
+    </section>
+
+    <!-- ── ACCESOS RÁPIDOS ── -->
+    <section class="accesos-rapidos">
+      <h2 class="section-title">Accesos rápidos</h2>
+      <div class="accesos-grid">
+        <router-link to="/director/planificaciones" class="acceso-card">
+          <ClipboardList class="acceso-icon text-blue-500" />
+          <span>Revisar Planificaciones</span>
+        </router-link>
+        <router-link to="/director/usuarios" class="acceso-card">
+          <Users class="acceso-icon text-purple-500" />
+          <span>Gestionar Docentes</span>
+        </router-link>
+      </div>
+    </section>
   </div>
 </template>
 
 <script setup>
-import { onMounted, computed } from 'vue'
-import {
-  Clock,
-  CheckCircle2,
-  MessageSquareWarning,
-  AlertCircle,
-  FileText,
-  RefreshCw,
-} from 'lucide-vue-next'
-
-import FiltrosPlanificacion from '@/components/director/FiltrosPlanificacion.vue'
-import PlanificacionesRecibidasTable from '@/components/director/PlanificacionesRecibidasTable.vue'
+import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { ClipboardList, FileText, Eye, Users } from 'lucide-vue-next'
 import { useRevision } from '@/composables/useRevision'
+import { useAuthStore } from '@/stores/auth'
+import KpiCard from '@/components/shared/KpiCard.vue'
+import PlanificacionesRecibidasTable from '@/components/director/PlanificacionesRecibidasTable.vue'
 
-const { loading, error, pendientesRevision, aprobadas, conObservaciones, fetchPlanificaciones } =
-  useRevision()
+const router = useRouter()
+const authStore = useAuthStore()
+const { planificaciones, loading, cargarPlanificaciones, irARevision } = useRevision()
 
-const añoActual = computed(() => new Date().getFullYear())
+// ── Datos del director logueado ──
+const nombreDirector = computed(() => authStore.user?.name || 'Director')
+const fechaHoy = computed(() =>
+  new Date().toLocaleDateString('es-AR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }),
+)
 
-onMounted(() => fetchPlanificaciones())
+// ── Stats calculados desde las planificaciones cargadas ──
+const loadingStats = computed(() => loading.value)
+
+const stats = computed(() => {
+  const lista = planificaciones.value
+  const getUltimoEstado = (p) => {
+    const estados = p.estados_anual || []
+    if (!estados.length) return null
+    return [...estados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0]?.estado
+  }
+
+  return {
+    pendientes: lista.filter((p) => ['Pendiente', 'En Proceso'].includes(getUltimoEstado(p)))
+      .length,
+    aprobadas: lista.filter((p) => getUltimoEstado(p) === 'Aprobado').length,
+    rechazadas: lista.filter((p) => getUltimoEstado(p) === 'Rechazado').length,
+    docentes: new Set(lista.map((p) => p.persona_cargo_cursado?.persona_cargo?.persona?.id)).size,
+  }
+})
+
+// ── Filtro rápido por estado ──
+const filtroActivo = ref('')
+const estadosFiltro = [
+  { value: '', label: 'Todas' },
+  { value: 'Pendiente', label: 'Pendientes' },
+  { value: 'En Proceso', label: 'En Proceso' },
+  { value: 'Aprobado', label: 'Aprobadas' },
+  { value: 'Rechazado', label: 'Rechazadas' },
+]
+
+const planificacionesFiltradas = computed(() => {
+  if (!filtroActivo.value) return planificaciones.value.slice(0, 10)
+  return planificaciones.value
+    .filter((p) => {
+      const estados = p.estados_anual || []
+      const ultimo = [...estados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0]?.estado
+      return ultimo === filtroActivo.value
+    })
+    .slice(0, 10)
+})
+
+function cambiarFiltro(estado) {
+  filtroActivo.value = estado
+}
+
+function irAPlanificaciones() {
+  router.push('/director/planificaciones')
+}
+
+// ── Init ──
+onMounted(async () => {
+  await cargarPlanificaciones()
+})
 </script>
 
 <style scoped>
-.dashboard-page {
+.director-dashboard {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.page-header {
-  margin-bottom: 0.25rem;
+/* Header */
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
-.page-title {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: #0f172a;
+
+.dashboard-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
 }
-.page-subtitle {
-  font-size: 0.875rem;
+
+.title-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  color: #6366f1;
+}
+
+.dashboard-subtitle {
+  margin: 0.25rem 0 0;
   color: #64748b;
-  margin-top: 0.25rem;
+  font-size: 0.95rem;
+  text-transform: capitalize;
 }
 
+/* KPI Grid */
 .kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.25rem;
 }
 
-.kpi-card {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  padding: 1.25rem 1.5rem;
-  border-radius: 12px;
-  border: 1px solid transparent;
-}
-
-.kpi-yellow {
-  background: #fffbeb;
-  border-color: #fde68a;
-}
-.kpi-green {
-  background: #f0fdf4;
-  border-color: #bbf7d0;
-}
-.kpi-red {
-  background: #fff1f2;
-  border-color: #fecdd3;
-}
-
-.kpi-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.kpi-yellow .kpi-icon {
-  background: #fef3c7;
-  color: #d97706;
-}
-.kpi-green .kpi-icon {
-  background: #dcfce7;
-  color: #15803d;
-}
-.kpi-red .kpi-icon {
-  background: #ffe4e6;
-  color: #e11d48;
-}
-
-.kpi-info {
-  display: flex;
-  flex-direction: column;
-}
-.kpi-value {
-  font-size: 1.75rem;
-  font-weight: 800;
-  color: #0f172a;
-  line-height: 1;
-}
-.kpi-label {
-  font-size: 0.8125rem;
-  color: #64748b;
-  margin-top: 0.25rem;
-}
-
-.error-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  padding: 0.875rem 1rem;
-  border-radius: 10px;
-  background: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #dc2626;
-  font-size: 0.875rem;
-}
-
+/* Sección card */
 .section-card {
-  background: #fff;
-  border-radius: 12px;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  overflow: hidden;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .section-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 1.25rem 1.25rem 0;
+  align-items: center;
   margin-bottom: 1rem;
 }
 
@@ -194,43 +255,133 @@ onMounted(() => fetchPlanificaciones())
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #0f172a;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
 }
 
-.btn-refresh {
+.section-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  color: #6366f1;
+}
+
+.link-ver-todas {
+  font-size: 0.875rem;
+  color: #6366f1;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.link-ver-todas:hover {
+  text-decoration: underline;
+}
+
+/* Filtros rápidos */
+.filtros-rapidos {
   display: flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.4rem 0.875rem;
-  border-radius: 8px;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.chip-filtro {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
   border: 1px solid #e2e8f0;
   background: #f8fafc;
   font-size: 0.8125rem;
-  color: #475569;
   cursor: pointer;
-}
-.btn-refresh:hover {
-  background: #e2e8f0;
-}
-
-.fade-enter-active,
-.fade-leave-active {
-  transition: all 0.3s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-  transform: translateY(-6px);
+  transition: all 0.15s;
+  color: #475569;
 }
 
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+.chip-filtro:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+}
+
+.chip-activo {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+/* Accesos rápidos */
+.accesos-rapidos {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.accesos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.acceso-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  text-decoration: none;
+  color: #1e293b;
+  font-weight: 500;
+  font-size: 0.9375rem;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.acceso-card:hover {
+  border-color: #6366f1;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.1);
+  transform: translateY(-2px);
+}
+
+.acceso-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+/* Botones */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.9375rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-primary:hover {
+  background: #4f46e5;
+}
+
+.btn-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+@media (max-width: 640px) {
+  .dashboard-header {
+    flex-direction: column;
   }
-}
-.spinning {
-  animation: spin 0.8s linear infinite;
+
+  .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

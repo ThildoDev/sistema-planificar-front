@@ -1,104 +1,145 @@
+<!-- src/components/director/PlanificacionesRecibidasTable.vue -->
 <template>
-  <div class="table-card">
-    <div v-if="loading" class="table-loading">
-      <Loader2 :size="28" class="spinning" />
+  <div class="tabla-wrapper">
+    <!-- Estado de carga -->
+    <div v-if="loading" class="estado-loading">
+      <div class="spinner" />
       <span>Cargando planificaciones...</span>
     </div>
 
-    <div v-else-if="planificacionesFiltradas.length === 0" class="empty-state">
-      <FileText :size="40" color="#cbd5e1" />
-      <p>No se encontraron planificaciones con los filtros aplicados.</p>
+    <!-- Sin resultados -->
+    <div v-else-if="!planificaciones.length" class="estado-vacio">
+      <ClipboardList class="vacio-icon" />
+      <p class="vacio-texto">No hay planificaciones para mostrar</p>
+      <p class="vacio-sub">Ajusta los filtros o espera nuevas presentaciones</p>
     </div>
 
-    <div v-else class="table-wrapper">
-      <table class="data-table">
+    <!-- Tabla -->
+    <div v-else class="tabla-scroll">
+      <table class="tabla">
         <thead>
           <tr>
             <th>#</th>
             <th>Docente</th>
-            <th>Área / Curso</th>
+            <th v-if="!compact">Curso</th>
+            <th>Área</th>
             <th>Tipo</th>
-            <th>Fecha</th>
+            <th>Presentación</th>
             <th>Estado</th>
-            <th>Acción</th>
+            <th>Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(plan, idx) in planificacionesFiltradas" :key="plan.id">
-            <td class="td-index">{{ idx + 1 }}</td>
+          <tr v-for="plan in planificaciones" :key="plan.id" class="tabla-fila">
+            <!-- ID -->
+            <td class="celda-id">{{ plan.id }}</td>
 
-            <td class="td-docente">
-              <div class="docente-avatar">
-                {{ getInitials(plan.persona?.apellidos) }}
+            <!-- Docente -->
+            <td class="celda-docente">
+              <div class="docente-info">
+                <span class="docente-nombre">{{ getNombreDocente(plan) }}</span>
+                <span v-if="!compact" class="docente-cargo">
+                  {{ getCargoDocente(plan) }}
+                </span>
               </div>
-              <div>
-                <p class="docente-name">
-                  {{ plan.persona?.apellidos }}, {{ plan.persona?.nombres }}
-                </p>
-                <p class="docente-cargo">{{ plan.cargo?.cargo }}</p>
-              </div>
             </td>
 
-            <td class="td-area">
-              <p class="area-name">{{ plan.area?.area }}</p>
-              <p class="area-tipo">{{ plan.area?.tipo }}</p>
+            <!-- Curso (solo en modo completo) -->
+            <td v-if="!compact" class="celda-curso">
+              {{ getCurso(plan) }}
             </td>
 
-            <td>
-              <span class="tipo-badge">{{ plan.tipo_planificacion }}</span>
+            <!-- Área -->
+            <td class="celda-area">
+              <span class="badge-area">{{ plan.area?.area || '—' }}</span>
             </td>
 
-            <td class="td-fecha">
+            <!-- Tipo -->
+            <td class="celda-tipo">
+              <span
+                class="badge-tipo"
+                :class="`badge-tipo--${plan.tipo_planificacion?.toLowerCase()}`"
+              >
+                {{ plan.tipo_planificacion || '—' }}
+              </span>
+            </td>
+
+            <!-- Fecha presentación -->
+            <td class="celda-fecha">
               {{ formatFecha(plan.fecha_presentacion) }}
             </td>
 
-            <td>
-              <EstadoBadge :estado="getUltimoEstado(plan)?.estado" />
+            <!-- Estado -->
+            <td class="celda-estado">
+              <EstadoBadge :estado="getUltimoEstado(plan)" />
             </td>
 
-            <td class="td-accion">
-              <router-link
-                v-if="getUltimoEstado(plan)?.estado === 'Revisado'"
-                :to="{ name: 'RevisionPlanificacion', params: { id: plan.id } }"
+            <!-- Acciones -->
+            <td class="celda-acciones">
+              <button
                 class="btn-revisar"
+                title="Revisar planificación"
+                @click="$emit('revisar', plan.id)"
               >
-                <ClipboardCheck :size="14" /> Revisar
-              </router-link>
-              <router-link
-                v-else
-                :to="{ name: 'RevisionPlanificacion', params: { id: plan.id } }"
-                class="btn-ver"
-              >
-                <Eye :size="14" /> Ver
-              </router-link>
+                <Eye class="btn-icon" />
+                <span v-if="!compact">Revisar</span>
+              </button>
             </td>
           </tr>
         </tbody>
       </table>
     </div>
-
-    <div v-if="!loading && planificacionesFiltradas.length > 0" class="table-footer">
-      Mostrando {{ planificacionesFiltradas.length }} de {{ totalPlanificaciones }} planificaciones
-    </div>
   </div>
 </template>
 
 <script setup>
-import { Loader2, FileText, Eye, ClipboardCheck } from 'lucide-vue-next'
-import { useRevision } from '@/composables/useRevision'
-import EstadoBadge from '@/components/director/EstadoBadge.vue'
+import { ClipboardList, Eye } from 'lucide-vue-next'
+import EstadoBadge from '@/components/shared/EstadoBadge.vue'
 
-const { planificacionesFiltradas, totalPlanificaciones, loading, getUltimoEstado } = useRevision()
+const props = defineProps({
+  planificaciones: {
+    type: Array,
+    default: () => [],
+  },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
+  /** Modo compacto: oculta columnas secundarias */
+  compact: {
+    type: Boolean,
+    default: false,
+  },
+})
 
-const getInitials = (str = '') =>
-  str
-    .split(' ')
-    .map((w) => w[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2)
+defineEmits(['revisar'])
 
-const formatFecha = (fecha) => {
+// ── Helpers de datos ──
+
+function getNombreDocente(plan) {
+  const persona = plan.persona_cargo_cursado?.persona_cargo?.persona
+  if (!persona) return '—'
+  return `${persona.apellidos || ''}, ${persona.nombres || ''}`.trim()
+}
+
+function getCargoDocente(plan) {
+  return plan.persona_cargo_cursado?.persona_cargo?.cargo?.cargo || '—'
+}
+
+function getCurso(plan) {
+  const cursado = plan.persona_cargo_cursado?.cursado
+  if (!cursado?.curso) return '—'
+  const { grado, seccion, turno } = cursado.curso
+  return `${grado || ''} ${seccion || ''} — ${turno || ''}`.trim()
+}
+
+function getUltimoEstado(plan) {
+  const estados = plan.estados_anual || []
+  if (!estados.length) return null
+  return [...estados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0]?.estado
+}
+
+function formatFecha(fecha) {
   if (!fecha) return '—'
   return new Date(fecha).toLocaleDateString('es-AR', {
     day: '2-digit',
@@ -109,15 +150,13 @@ const formatFecha = (fecha) => {
 </script>
 
 <style scoped>
-.table-card {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e2e8f0;
-  overflow: hidden;
+.tabla-wrapper {
+  width: 100%;
 }
 
-.table-loading,
-.empty-state {
+/* Estados de UI */
+.estado-loading,
+.estado-vacio {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -125,144 +164,15 @@ const formatFecha = (fecha) => {
   gap: 0.75rem;
   padding: 3rem;
   color: #94a3b8;
-  font-size: 0.875rem;
 }
 
-.table-wrapper {
-  overflow-x: auto;
-}
-
-.data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.data-table thead tr {
-  background: #f8fafc;
-  border-bottom: 2px solid #e2e8f0;
-}
-
-.data-table th {
-  padding: 0.75rem 1rem;
-  text-align: left;
-  font-size: 0.75rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  white-space: nowrap;
-}
-
-.data-table td {
-  padding: 1rem;
-  border-bottom: 1px solid #f1f5f9;
-  vertical-align: middle;
-}
-
-.data-table tbody tr:hover {
-  background: #fafafa;
-}
-.data-table tbody tr:last-child td {
-  border-bottom: none;
-}
-
-.td-index {
-  color: #94a3b8;
-  width: 40px;
-}
-
-.td-docente {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-  min-width: 180px;
-}
-.docente-avatar {
-  width: 34px;
-  height: 34px;
-  background: #ede9fe;
-  color: #5b21b6;
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid #e2e8f0;
+  border-top-color: #6366f1;
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.75rem;
-  font-weight: 700;
-  flex-shrink: 0;
-}
-.docente-name {
-  font-weight: 600;
-  color: #0f172a;
-  font-size: 0.875rem;
-}
-.docente-cargo {
-  font-size: 0.75rem;
-  color: #94a3b8;
-}
-
-.area-name {
-  font-weight: 600;
-  color: #0f172a;
-  font-size: 0.875rem;
-}
-.area-tipo {
-  font-size: 0.75rem;
-  color: #64748b;
-}
-
-.tipo-badge {
-  display: inline-flex;
-  padding: 0.25rem 0.625rem;
-  background: #f1f5f9;
-  color: #475569;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-}
-
-.td-fecha {
-  color: #64748b;
-  white-space: nowrap;
-  font-size: 0.8125rem;
-}
-
-.btn-revisar,
-.btn-ver {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.4rem 0.875rem;
-  border-radius: 8px;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 0.2s;
-  white-space: nowrap;
-}
-
-.btn-revisar {
-  background: #2563eb;
-  color: #fff;
-}
-.btn-revisar:hover {
-  background: #1d4ed8;
-}
-
-.btn-ver {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid #e2e8f0;
-}
-.btn-ver:hover {
-  background: #e2e8f0;
-}
-
-.table-footer {
-  padding: 0.75rem 1.25rem;
-  font-size: 0.8125rem;
-  color: #94a3b8;
-  border-top: 1px solid #f1f5f9;
+  animation: spin 0.7s linear infinite;
 }
 
 @keyframes spin {
@@ -270,7 +180,141 @@ const formatFecha = (fecha) => {
     transform: rotate(360deg);
   }
 }
-.spinning {
-  animation: spin 0.8s linear infinite;
+
+.vacio-icon {
+  width: 3rem;
+  height: 3rem;
+  color: #cbd5e1;
+}
+
+.vacio-texto {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #475569;
+  margin: 0;
+}
+
+.vacio-sub {
+  font-size: 0.875rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Tabla */
+.tabla-scroll {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.tabla thead tr {
+  background: #f8fafc;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.tabla th {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  font-weight: 600;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.tabla-fila {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.1s;
+}
+
+.tabla-fila:hover {
+  background: #f8fafc;
+}
+
+.tabla td {
+  padding: 0.75rem 1rem;
+  color: #1e293b;
+  vertical-align: middle;
+}
+
+/* Celdas específicas */
+.celda-id {
+  font-variant-numeric: tabular-nums;
+  color: #94a3b8;
+  font-size: 0.8125rem;
+}
+
+.docente-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.docente-nombre {
+  font-weight: 500;
+}
+
+.docente-cargo {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.badge-area {
+  background: #ede9fe;
+  color: #7c3aed;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-tipo {
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.badge-tipo--anual {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.badge-tipo--trimestral {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.celda-fecha {
+  white-space: nowrap;
+  color: #64748b;
+  font-size: 0.8125rem;
+}
+
+/* Botón revisar */
+.btn-revisar {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+
+.btn-revisar:hover {
+  background: #4f46e5;
+}
+
+.btn-icon {
+  width: 0.875rem;
+  height: 0.875rem;
 }
 </style>
