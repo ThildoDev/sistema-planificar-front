@@ -1,129 +1,166 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import DirectorRepository from '@/repositories/DirectorRepository'
 
-export const useRevisionStore = defineStore('revision', () => {
-  // ─── Estado ───────────────────────────────────────────────────────────────
-  const planificaciones = ref([])
-  const planificacionActual = ref(null)
-  const loading = ref(false)
-  const loadingAction = ref(false)
-  const error = ref(null)
-  const successMsg = ref(null)
+/**
+ * Store de Revisión de Planificaciones
+ * Gestiona el estado de la planificación actualmente en revisión,
+ * su historial de estados y el proceso de decisión del director.
+ */
+export const useRevisionStore = defineStore('revision', {
+  state: () => ({
+    // ─── Planificación en revisión ───────────────────────────────
+    planificacion: null, // Objeto completo de planificacion_anual
+    estadosAnual: [], // Array de estados_anual ordenados por fecha
+    area: null, // Objeto area { id, area, tipo }
 
-  // ─── Getters ──────────────────────────────────────────────────────────────
-  const totalPlanificaciones = computed(() => planificaciones.value.length)
+    // ─── Listado de planificaciones recibidas ────────────────────
+    planificaciones: [], // Array del GET /api/planificaciones
+    total: 0, // Total para paginación futura
 
-  const getUltimoEstado = (planificacion) => {
-    const estados = planificacion?.estados_anual
-    if (!estados?.length) return null
-    return [...estados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0]
-  }
+    // ─── Filtros activos ─────────────────────────────────────────
+    filtros: {
+      area_id: null,
+      estado: '',
+      tipo: '',
+      docente_id: null,
+      fecha_desde: '',
+      fecha_hasta: '',
+    },
 
-  const pendientesRevision = computed(
-    () =>
-      planificaciones.value.filter((p) => {
-        const ult = getUltimoEstado(p)
-        return ult?.estado === 'Revisado'
-      }).length,
-  )
+    // ─── UI States ───────────────────────────────────────────────
+    cargando: false, // Loading general
+    cargandoPlanificacion: false,
+    enviandoDecision: false, // Aprobar / Rechazar en proceso
+    error: null, // Mensaje de error actual
+    errorDecision: null, // Error específico de decisión (ej: 403)
 
-  const aprobadas = computed(
-    () =>
-      planificaciones.value.filter((p) => {
-        const ult = getUltimoEstado(p)
-        return ult?.estado === 'Aprobado'
-      }).length,
-  )
+    // ─── Decisión del director ───────────────────────────────────
+    decision: {
+      tipo: null, // 'aprobar' | 'rechazar' | null
+      observacion: '',
+      categoria: '',
+    },
+  }),
 
-  const conObservaciones = computed(
-    () =>
-      planificaciones.value.filter((p) => {
-        const ult = getUltimoEstado(p)
-        return ult?.estado === 'Rechazado'
-      }).length,
-  )
+  getters: {
+    /**
+     * Último estado de la planificación (el más reciente).
+     * Los estados se asumen ordenados desc por fecha desde el backend.
+     */
+    estadoActual: (state) => {
+      if (!state.estadosAnual.length) return null
+      return state.estadosAnual[0]
+    },
 
-  // ─── Helpers ──────────────────────────────────────────────────────────────
-  function clearMessages() {
-    error.value = null
-    successMsg.value = null
-  }
+    /**
+     * Verifica si la planificación está en un estado que permite revisión.
+     * Solo 'Pendiente' y 'En Proceso' son revisables.
+     */
+    puedeRevisar: (state) => {
+      const estadoActual = state.estadosAnual[0]?.estado
+      return ['Pendiente', 'En Proceso'].includes(estadoActual)
+    },
 
-  // ─── Acciones ─────────────────────────────────────────────────────────────
+    /**
+     * Planificaciones filtradas por estado para la tabla.
+     */
+    planificacionesFiltradas: (state) => {
+      if (!state.filtros.estado) return state.planificaciones
+      return state.planificaciones.filter(
+        (p) => p.estados_anual?.[0]?.estado === state.filtros.estado,
+      )
+    },
 
-  async function fetchPlanificaciones(params = {}) {
-    loading.value = true
-    clearMessages()
-    try {
-      const data = await DirectorRepository.getPlanificaciones(params)
-      planificaciones.value = Array.isArray(data) ? data : (data.data ?? [])
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al cargar planificaciones.'
-    } finally {
-      loading.value = false
-    }
-  }
+    /**
+     * Indica si el formulario de observación es válido para enviar.
+     */
+    observacionValida: (state) => {
+      return (
+        state.decision.observacion.length >= 30 &&
+        state.decision.observacion.length <= 500 &&
+        state.decision.categoria !== ''
+      )
+    },
+  },
 
-  async function fetchPlanificacion(id) {
-    loading.value = true
-    clearMessages()
-    try {
-      const data = await DirectorRepository.getPlanificacion(id)
-      planificacionActual.value = data
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al cargar la planificación.'
-    } finally {
-      loading.value = false
-    }
-  }
+  actions: {
+    // ─── SET FILTROS ─────────────────────────────────────────────
+    setFiltro(campo, valor) {
+      this.filtros[campo] = valor
+    },
 
-  async function aprobar(id) {
-    loadingAction.value = true
-    clearMessages()
-    try {
-      await DirectorRepository.aprobarPlanificacion(id)
-      successMsg.value = 'Planificación aprobada exitosamente.'
-      return { ok: true }
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al aprobar la planificación.'
-      return { ok: false }
-    } finally {
-      loadingAction.value = false
-    }
-  }
+    resetFiltros() {
+      this.filtros = {
+        area_id: null,
+        estado: '',
+        tipo: '',
+        docente_id: null,
+        fecha_desde: '',
+        fecha_hasta: '',
+      }
+    },
 
-  async function observar(id, data) {
-    loadingAction.value = true
-    clearMessages()
-    try {
-      await DirectorRepository.observarPlanificacion(id, data)
-      successMsg.value = 'Observaciones enviadas. El docente será notificado.'
-      return { ok: true }
-    } catch (err) {
-      error.value = err.response?.data?.message || 'Error al enviar observaciones.'
-      return { ok: false }
-    } finally {
-      loadingAction.value = false
-    }
-  }
+    // ─── SET PLANIFICACIONES ─────────────────────────────────────
+    setPlanificaciones(data) {
+      this.planificaciones = data
+      this.total = data.length
+    },
 
-  return {
-    planificaciones,
-    planificacionActual,
-    loading,
-    loadingAction,
-    error,
-    successMsg,
-    totalPlanificaciones,
-    pendientesRevision,
-    aprobadas,
-    conObservaciones,
-    getUltimoEstado,
-    fetchPlanificaciones,
-    fetchPlanificacion,
-    aprobar,
-    observar,
-    clearMessages,
-  }
+    // ─── SET PLANIFICACIÓN ACTIVA ─────────────────────────────────
+    setPlanificacion(data) {
+      this.planificacion = data
+      this.estadosAnual = data.estados_anual
+        ? [...data.estados_anual].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+        : []
+      this.area = data.area || null
+    },
+
+    // ─── RESET REVISIÓN ──────────────────────────────────────────
+    resetRevision() {
+      this.planificacion = null
+      this.estadosAnual = []
+      this.area = null
+      this.error = null
+      this.errorDecision = null
+      this.decision = { tipo: null, observacion: '', categoria: '' }
+    },
+
+    // ─── DECISIÓN ────────────────────────────────────────────────
+    setDecisionTipo(tipo) {
+      this.decision.tipo = tipo
+    },
+
+    setObservacion(texto) {
+      this.decision.observacion = texto
+    },
+
+    setCategoria(categoria) {
+      this.decision.categoria = categoria
+    },
+
+    resetDecision() {
+      this.decision = { tipo: null, observacion: '', categoria: '' }
+      this.errorDecision = null
+    },
+
+    // ─── AGREGAR ESTADO AL HISTORIAL (optimistic update) ─────────
+    agregarEstado(nuevoEstado) {
+      this.estadosAnual.unshift(nuevoEstado)
+    },
+
+    // ─── ERRORS ──────────────────────────────────────────────────
+    setError(mensaje) {
+      this.error = mensaje
+    },
+
+    setErrorDecision(mensaje) {
+      this.errorDecision = mensaje
+    },
+
+    clearErrors() {
+      this.error = null
+      this.errorDecision = null
+    },
+  },
+
+  persist: false, // Nunca persistir planificaciones sensibles
 })

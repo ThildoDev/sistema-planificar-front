@@ -2,42 +2,81 @@ import api from '@/plugins/axios'
 
 /**
  * DirectorRepository
- * Encapsula todas las peticiones HTTP del módulo Director.
+ * Encapsula todas las llamadas HTTP del módulo Director.
+ * Separación estricta: solo axios, sin lógica de negocio.
  */
-class DirectorRepository {
-  // ── Planificaciones ──────────────────────────────────────────────────────────
+const DirectorRepository = {
+  // ─── PLANIFICACIONES ────────────────────────────────────────────
 
-  async getPlanificaciones(params = {}) {
-    const response = await api.get('/planificaciones', { params })
-    return response.data
-  }
+  /**
+   * Obtiene todas las planificaciones visibles para el director.
+   * @param {Object} params - Filtros opcionales: area_id, estado, tipo, docente_id
+   */
+  getPlanificaciones(params = {}) {
+    return api.get('/planificaciones', { params })
+  },
 
-  async getPlanificacion(id) {
-    const response = await api.get(`/planificaciones/${id}`)
-    return response.data
-  }
+  /**
+   * Obtiene una planificación completa por ID.
+   * Incluye: area, estados_anual, persona_cargo_cursado con relaciones.
+   * @param {number|string} id
+   */
+  getPlanificacion(id) {
+    return api.get(`/planificaciones/${id}`)
+  },
 
-  async aprobarPlanificacion(id) {
-    const response = await api.put(`/planificaciones/${id}/aprobar`)
-    return response.data
-  }
+  // ─── ESTADOS / REVISIÓN ──────────────────────────────────────────
 
-  async observarPlanificacion(id, data) {
-    const response = await api.put(`/planificaciones/${id}/observar`, data)
-    return response.data
-  }
+  /**
+   * Aprueba una planificación.
+   * El backend crea un estado_anual con estado='Aprobado'.
+   * @param {number|string} id - ID de planificacion_anual
+   */
+  aprobarPlanificacion(id) {
+    return api.post(`/planificaciones/${id}/aprobar`)
+  },
 
-  // ── Usuarios / Docentes ───────────────────────────────────────────────────────
+  /**
+   * Rechaza una planificación con observaciones obligatorias.
+   * El backend crea un estado_anual con estado='Rechazado'.
+   * @param {number|string} id
+   * @param {Object} payload - { categoria: string, observacion: string }
+   */
+  rechazarPlanificacion(id, payload) {
+    return api.post(`/planificaciones/${id}/rechazar`, payload)
+  },
 
-  async getUsuarios(params = {}) {
-    const response = await api.get('/users', { params })
-    return response.data
-  }
+  /**
+   * Agrega una observación sin cambiar el estado final.
+   * @param {number|string} id
+   * @param {Object} payload - { categoria: string, observacion: string }
+   */
+  agregarObservacion(id, payload) {
+    return api.post(`/planificaciones/${id}/observaciones`, payload)
+  },
 
-  async asignarRol(userId, role) {
-    const response = await api.put(`/users/${userId}/role`, { role })
-    return response.data
-  }
+  // ─── USUARIOS ────────────────────────────────────────────────────
+
+  /**
+   * Obtiene usuarios con role='user' o role='docente'.
+   * El director solo puede ver/modificar estos roles.
+   */
+  getUsuarios() {
+    return api.get('/users', {
+      params: { roles: 'user,docente' },
+    })
+  },
+
+  /**
+   * Cambia el rol de un usuario.
+   * Director solo puede asignar: 'user' | 'docente'
+   * El backend valida la jerarquía y devuelve 403 si se excede.
+   * @param {number|string} userId
+   * @param {string} role - 'user' | 'docente'
+   */
+  cambiarRol(userId, role) {
+    return api.put(`/users/${userId}/role`, { role })
+  },
 }
 
-export default new DirectorRepository()
+export default DirectorRepository
