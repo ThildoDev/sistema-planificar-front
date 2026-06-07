@@ -1,84 +1,149 @@
-import { ref } from 'vue'
+// src/composables/useUsuarios.js
+import { computed } from 'vue'
 import { useUsuariosStore } from '@/stores/usuarios'
-import { useAuthStore } from '@/stores/auth'
-import { storeToRefs } from 'pinia'
+import { useToast } from '@/composables/useToast'
 
 /**
- * useUsuarios
- * Composable que expone la lógica de gestión de usuarios
- * al módulo Admin y Director.
+ * Composable para la gestión de usuarios.
+ * Compartido entre el panel Admin y Director.
  */
 export function useUsuarios() {
   const store = useUsuariosStore()
-  const authStore = useAuthStore()
+  const { showToast } = useToast()
 
-  const {
-    usuarios,
-    loading,
-    loadingAction,
-    error,
-    successMsg,
-    totalUsuarios,
-    totalDocentes,
-    totalDirectores,
-  } = storeToRefs(store)
+  // ─────────────────────────────────────────────
+  // STATE
+  // ─────────────────────────────────────────────
 
-  // ─── Roles disponibles según el rol del usuario logueado ─────────────────
-  const rolesDisponibles = computed(() => {
-    const currentRole = authStore.userRole
-    if (currentRole === 'admin') {
-      return [
-        { value: 'admin', label: 'Administrador' },
-        { value: 'director', label: 'Director' },
-        { value: 'docente', label: 'Docente' },
-        { value: 'user', label: 'Usuario común' },
-      ]
+  const usuarios = computed(() => store.usuariosFiltrados)
+  const usuarioSeleccionado = computed(() => store.usuarioSeleccionado)
+  const rolesPermitidos = computed(() => store.rolesPermitidos)
+  const loading = computed(() => store.loading)
+  const loadingAccion = computed(() => store.loadingAccion)
+  const error = computed(() => store.error)
+  const successMessage = computed(() => store.successMessage)
+  const busqueda = computed(() => store.busqueda)
+
+  // ─────────────────────────────────────────────
+  // ACCIONES
+  // ─────────────────────────────────────────────
+
+  async function cargarUsuarios() {
+    await store.fetchUsuarios()
+    if (store.error) {
+      showToast(store.error, 'error')
     }
-    if (currentRole === 'director') {
-      return [
-        { value: 'docente', label: 'Docente' },
-        { value: 'user', label: 'Usuario común' },
-      ]
+  }
+
+  async function crearUsuario(formData) {
+    const ok = await store.crearUsuario(formData)
+    if (ok) {
+      showToast(store.successMessage || 'Usuario creado', 'success')
+    } else {
+      showToast(store.error || 'Error al crear usuario', 'error')
     }
-    return []
-  })
+    return ok
+  }
 
-  // ─── Filtro local de búsqueda ─────────────────────────────────────────────
-  const searchQuery = ref('')
-  const filterRole = ref('todos')
+  async function cambiarRol(userId, nuevoRol) {
+    const ok = await store.cambiarRol(userId, nuevoRol)
+    if (ok) {
+      showToast(store.successMessage || 'Rol actualizado', 'success')
+    } else {
+      showToast(store.error || 'Error al cambiar rol', 'error')
+    }
+    return ok
+  }
 
-  const usuariosFiltrados = computed(() => {
-    return usuarios.value.filter((u) => {
-      const matchRole = filterRole.value === 'todos' || u.role === filterRole.value
-      const matchSearch =
-        !searchQuery.value ||
-        u.name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        u.email?.toLowerCase().includes(searchQuery.value.toLowerCase())
-      return matchRole && matchSearch
-    })
-  })
+  async function resetPassword(userId, password) {
+    const ok = await store.resetPassword(userId, password)
+    if (ok) {
+      showToast('Contraseña actualizada correctamente', 'success')
+    } else {
+      showToast(store.error || 'Error al resetear contraseña', 'error')
+    }
+    return ok
+  }
+
+  function seleccionarUsuario(usuario) {
+    store.seleccionarUsuario(usuario)
+  }
+
+  function limpiarSeleccion() {
+    store.limpiarSeleccion()
+  }
+
+  function setBusqueda(valor) {
+    store.setBusqueda(valor)
+  }
+
+  function limpiarMensajes() {
+    store.limpiarMensajes()
+  }
+
+  /**
+   * Retorna el color del badge según el rol.
+   * @param {string} role
+   */
+  function getColorRol(role) {
+    const colores = {
+      admin: 'red',
+      director: 'purple',
+      docente: 'blue',
+      user: 'gray',
+    }
+    return colores[role] || 'gray'
+  }
+
+  /**
+   * Retorna el label legible del rol.
+   * @param {string} role
+   */
+  function getLabelRol(role) {
+    const labels = {
+      admin: 'Administrador',
+      director: 'Director',
+      docente: 'Docente',
+      user: 'Usuario',
+    }
+    return labels[role] || role
+  }
+
+  /**
+   * Nombre completo desde el objeto persona.
+   * @param {Object} usuario
+   */
+  function getNombreCompleto(usuario) {
+    if (usuario.persona?.apellidos && usuario.persona?.nombres) {
+      return `${usuario.persona.apellidos}, ${usuario.persona.nombres}`
+    }
+    return usuario.name || usuario.email || '—'
+  }
 
   return {
-    // Estado del store
+    // Estado
     usuarios,
-    usuariosFiltrados,
+    usuarioSeleccionado,
+    rolesPermitidos,
     loading,
-    loadingAction,
+    loadingAccion,
     error,
-    successMsg,
-    // Getters
-    totalUsuarios,
-    totalDocentes,
-    totalDirectores,
-    rolesDisponibles,
-    // Filtros locales
-    searchQuery,
-    filterRole,
-    // Acciones del store
-    fetchUsuarios: store.fetchUsuarios,
-    crearUsuario: store.crearUsuario,
-    asignarRol: store.asignarRol,
-    resetPassword: store.resetPassword,
-    clearMessages: store.clearMessages,
+    successMessage,
+    busqueda,
+
+    // Acciones
+    cargarUsuarios,
+    crearUsuario,
+    cambiarRol,
+    resetPassword,
+    seleccionarUsuario,
+    limpiarSeleccion,
+    setBusqueda,
+    limpiarMensajes,
+
+    // Helpers
+    getColorRol,
+    getLabelRol,
+    getNombreCompleto,
   }
 }
