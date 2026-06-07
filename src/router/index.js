@@ -4,8 +4,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import {useAuthStore} from '@/stores/auth'
 
 import AuthLayout from '@/layouts/AuthLayout.vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import DirectorLayout from '@/layouts/DirectorLayout.vue'
+// import AdminLayout from '@/layouts/AdminLayout.vue'
+// import DirectorLayout from '@/layouts/DirectorLayout.vue'
 import DocenteLayout from '@/layouts/DocenteLayout.vue'
 
 import LoginView from '@/views/auth/LoginView.vue'
@@ -23,33 +23,52 @@ const router = createRouter({
       meta: { public: true }
     },
     // ADMIN
-    {
-      path: '/admin',
-      component: AdminLayout,
-      meta: { role: 'admin' },
-      children: [
-        { path: 'dashboard', component: () => import('@/views/admin/AdminDashboard.vue') },
-        { path: 'usuarios', component: () => import('@/views/admin/AdminUsuarios.vue') }
-      ]
-    },
+    // {
+    //   path: '/admin',
+    //   component: AdminLayout,
+    //   meta: { role: 'admin' },
+    //   children: [
+    //     { path: 'dashboard', component: () => import('@/views/admin/AdminDashboard.vue') },
+    //     { path: 'usuarios', component: () => import('@/views/admin/AdminUsuarios.vue') }
+    //   ]
+    // },
     // DIRECTOR
-    {
-      path: '/director',
-      component: DirectorLayout,
-      meta: { role: 'director' },
-      children: [
-        { path: 'dashboard', component: () => import('@/views/director/DirectorDashboard.vue') },
-        { path: 'planificaciones', component: () => import('@/views/director/PlanificacionesRecibidas.vue') }
-      ]
-    },
+    // {
+    //   path: '/director',
+    //   component: DirectorLayout,
+    //   meta: { role: 'director' },
+    //   children: [
+    //     { path: 'dashboard', component: () => import('@/views/director/DirectorDashboard.vue') },
+    //     { path: 'planificaciones', component: () => import('@/views/director/PlanificacionesRecibidas.vue') }
+    //   ]
+    // },
     // DOCENTE
     {
       path: '/docente',
       component: DocenteLayout,
       meta: { role: 'docente' },
+      redirect: '/docente/dashboard',
       children: [
-        { path: 'dashboard', component: () => import('@/views/docente/DocenteDashboard.vue') },
-        { path: 'planificaciones', component: () => import('@/views/docente/PlanificacionesTable.vue') }
+              {
+                path: 'dashboard',
+                name: 'docente-dashboard',
+                component: () => import('@/views/docente/DocenteDashboard.vue')
+              },
+              {
+                path: 'planificaciones/crear',
+                name: 'crear-planificacion',
+                component: () => import('@/views/docente/CrearPlanificacion.vue')
+              },
+              {
+                path: 'planificaciones/editar/:id',
+                name: 'editar-planificacion',
+                component: () => import('@/views/docente/EditarPlanificacion.vue')
+              },
+              {
+                path: 'planificaciones/ver/:id',
+                name: 'ver-planificacion',
+                component: () => import('@/views/docente/VerPlanificacion.vue')
+              }
       ]
     },
     // Rutas públicas o sin rol específico
