@@ -114,7 +114,7 @@ const getInitials = (name = '') =>
     .slice(0, 2)
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .table-card {
   background: #fff;
   border-radius: 12px;
@@ -345,4 +345,4 @@ const getInitials = (name = '') =>
 .spinning {
   animation: spin 0.8s linear infinite;
 }
-</style>
+</style> -->

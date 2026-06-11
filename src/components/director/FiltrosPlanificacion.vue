@@ -145,7 +145,7 @@ function limpiar() {
 }
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .filtros-panel {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -238,4 +238,4 @@ function limpiar() {
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
-</style>
+</style> -->

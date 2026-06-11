@@ -141,7 +141,7 @@ async function handleConfirm() {
 }
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -329,4 +329,4 @@ async function handleConfirm() {
 .spinning {
   animation: spin 0.8s linear infinite;
 }
-</style>
+</style> -->

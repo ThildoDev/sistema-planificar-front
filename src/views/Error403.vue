@@ -5,9 +5,9 @@
   </div>
 </template>
 
-<style scoped>
-.error {
-  text-align: center;
-  margin-top: 100px;
+<script>
+export default {
+  name: 'Error403View'
 }
-</style>
+</script>
+

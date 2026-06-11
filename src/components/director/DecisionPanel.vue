@@ -81,7 +81,7 @@ function ejecutarAprobar() {
 }
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .decision-panel {
   background: #ffffff;
   border: 2px solid #e2e8f0;
@@ -274,4 +274,4 @@ function ejecutarAprobar() {
 .btn-confirm-no:hover:not(:disabled) {
   background: #fef3c7;
 }
-</style>
+</style> -->

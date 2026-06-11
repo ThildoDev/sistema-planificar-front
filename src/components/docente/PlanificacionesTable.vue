@@ -87,7 +87,7 @@
 import { Eye, Pencil, Trash2, MessageSquare, BookOpen, Calendar } from 'lucide-vue-next'
 import StatusBadgeAnual from './StatusBadgeAnual.vue'
 
-defineProps({
+const props = defineProps({
   planificaciones: {
     type: Array,
     required: true

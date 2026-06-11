@@ -209,7 +209,7 @@ async function handleSubmit() {
 }
 </script>
 
-<style scoped>
+<!-- <style scoped>
 .form-card {
   background: #fff;
   border-radius: 12px;
@@ -364,4 +364,4 @@ async function handleSubmit() {
     grid-template-columns: 1fr;
   }
 }
-</style>
+</style> -->

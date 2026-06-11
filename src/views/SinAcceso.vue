@@ -5,9 +5,4 @@
   </div>
 </template>
 
-<style scoped>
-.error {
-  text-align: center;
-  margin-top: 100px;
-}
-</style>
+
