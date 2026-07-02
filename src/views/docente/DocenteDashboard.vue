@@ -1,116 +1,104 @@
 <template>
   <div class="space-y-6">
 
-    <!-- Cabecera de la vista -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div class="flex flex-col md:flex-row md:justify-between md:items-center bg-white p-6 rounded-xl border border-gray-200 shadow-sm gap-4">
       <div>
-        <h1 class="text-2xl font-extrabold text-slate-900 tracking-tight">
-          Buenos días, {{ authStore.user?.name?.split(' ')[0] }} 👋
-        </h1>
-        <p class="text-sm text-slate-500 mt-0.5">Acá podés ver el estado de todas tus planificaciones.</p>
+        <h1 class="text-xl font-bold text-gray-900">Mis Planificaciones Anuales</h1>
+        <p class="text-sm text-gray-500 mt-1">Gestioná, editá y revisá el estado de tus propuestas pedagógicas conectadas al sistema central.</p>
       </div>
-      <RouterLink
-        to="/planificaciones/crear"
-        class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-bold text-white
-               transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2
-               hover:-translate-y-0.5"
-        style="background: linear-gradient(135deg, #1e4fa8, #2563eb); box-shadow: 0 4px 12px rgba(37,99,235,0.3);"
-      >
-        <FilePlus :size="16" />
-        Nueva Planificación
-      </RouterLink>
+      <button @click="openModal" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-all shadow-md shadow-blue-600/10">
+        + Nueva Planificación
+      </button>
     </div>
 
-    <!-- ── KPI Cards ── -->
-    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-      <div
-        v-for="kpi in kpiCards"
-        :key="kpi.label"
-        class="bg-white rounded-2xl p-5 border border-slate-100 flex items-center gap-4
-               hover:shadow-md transition-shadow duration-200"
-        style="box-shadow: 0 1px 4px rgba(0,0,0,0.04);"
-      >
-        <div class="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-             :class="kpi.iconBg">
-          <component :is="kpi.icon" :size="22" :class="kpi.iconColor" />
-        </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div class="text-xl p-3 bg-gray-50 border border-gray-100 rounded-lg">📋</div>
         <div>
-          <p class="text-2xl font-extrabold text-slate-900 leading-tight">{{ kpi.value }}</p>
-          <p class="text-xs text-slate-500 font-medium">{{ kpi.label }}</p>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Entregadas</p>
+          <h3 class="text-2xl font-bold text-gray-900 mt-0.5">{{ planificacionStore.totalEntregadas }}</h3>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div class="text-xl p-3 bg-green-50 border border-green-100 rounded-lg">✅</div>
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Aprobadas</p>
+          <h3 class="text-2xl font-bold text-green-700 mt-0.5">{{ planificacionStore.totalAprobadas }}</h3>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div class="text-xl p-3 bg-blue-50 border border-blue-100 rounded-lg">⏳</div>
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">En Revisión</p>
+          <h3 class="text-2xl font-bold text-blue-700 mt-0.5">{{ planificacionStore.totalPendientes }}</h3>
+        </div>
+      </div>
+
+      <div class="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex items-center gap-4">
+        <div class="text-xl p-3 bg-amber-50 border border-amber-100 rounded-lg">⚠️</div>
+        <div>
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">A Corregir</p>
+          <h3 class="text-2xl font-bold text-amber-700 mt-0.5">{{ planificacionStore.totalACorregir }}</h3>
         </div>
       </div>
     </div>
 
-    <!-- ── Tabla de Planificaciones ── -->
-    <div class="bg-white rounded-2xl border border-slate-100 overflow-hidden"
-         style="box-shadow: 0 1px 4px rgba(0,0,0,0.04);">
-      <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
-          <FolderOpen :size="15" class="text-slate-400" />
-          Mis Planificaciones
-        </h2>
-        <span class="text-xs text-slate-400">{{ planificaciones.length }} registros</span>
-      </div>
+    <div v-if="planificacionStore.loading" class="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-gray-200">
+      <div class="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+      <p class="text-sm font-medium text-gray-500">Sincronizando con el servidor de Laravel...</p>
+    </div>
 
+    <div v-else-if="planificacionStore.error" class="p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-3">
+      <span>⚠️</span>
+      <p class="font-medium">{{ planificacionStore.error }}</p>
+    </div>
+
+    <div v-else class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div class="overflow-x-auto">
-        <table class="w-full text-sm">
+        <table class="w-full text-left border-collapse">
           <thead>
-            <tr class="bg-slate-50 border-b border-slate-100 text-left">
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">#</th>
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Área</th>
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Tipo</th>
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Fecha</th>
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Estado</th>
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Avance</th>
-              <th class="px-5 py-3 text-xs font-bold text-slate-500 uppercase tracking-widest">Acciones</th>
+            <tr class="bg-gray-50 border-b border-gray-200 text-xs font-bold text-gray-600 uppercase tracking-wider">
+              <th class="p-4 pl-6 w-16">ID</th>
+              <th class="p-4">Fecha Presentación</th>
+              <th class="p-4">Saberes / Ejes</th>
+              <th class="p-4">Tipo</th>
+              <th class="p-4">Estado</th>
+              <th class="p-4 text-center pr-6 w-32">Acciones</th>
             </tr>
           </thead>
-          <tbody>
-            <tr
-              v-for="(plan, i) in planificaciones"
-              :key="plan.id"
-              class="border-b border-slate-50 hover:bg-slate-50/60 transition-colors"
-            >
-              <td class="px-5 py-3.5 text-slate-400 font-medium text-xs">{{ i + 1 }}</td>
-              <td class="px-5 py-3.5 font-semibold text-slate-700">{{ plan.area }}</td>
-              <td class="px-5 py-3.5">
-                <span class="text-xs px-2.5 py-1 rounded-lg font-semibold"
-                      :class="plan.tipo === 'Anual'
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'bg-violet-50 text-violet-700'">
-                  {{ plan.tipo }}
+
+          <tbody class="divide-y divide-gray-100 text-sm text-gray-700">
+            <tr v-if="planificacionesFiltradas.length === 0">
+              <td colspan="6" class="p-12 text-center text-gray-400 font-medium">
+                No tenés ninguna planificación anual cargada en el sistema.
+              </td>
+            </tr>
+
+            <tr v-for="item in planificacionesFiltradas" :key="item.id" class="hover:bg-gray-50/70 transition-colors">
+              <td class="p-4 pl-6 font-semibold text-gray-400">#{{ item.id }}</td>
+              <td class="p-4 font-medium text-gray-900">{{ item.fecha_presentacion || 'No definida' }}</td>
+              <td class="p-4 max-w-xs truncate text-gray-600" :title="item.saberes">
+                {{ item.saberes || 'Sin especificar' }}
+              </td>
+              <td class="p-4">
+                <span class="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs font-semibold uppercase border border-gray-200">
+                  {{ item.tipo_planificacion || 'Anual' }}
                 </span>
               </td>
-              <td class="px-5 py-3.5 text-slate-500 text-xs">{{ formatDate(plan.fecha) }}</td>
-              <td class="px-5 py-3.5">
-                <EstadoBadge :estado="plan.estado" />
+              <td class="p-4">
+                <span
+                  class="px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border uppercase"
+                  :class="formatStatus(item.estado)"
+                >
+                  {{ item.estado || 'Borrador' }}
+                </span>
               </td>
-              <td class="px-5 py-3.5">
-                <div class="flex items-center gap-2 min-w-[90px]">
-                  <div class="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div
-                      class="h-full rounded-full transition-all duration-500"
-                      :class="plan.avance >= 70 ? 'bg-emerald-500' : plan.avance >= 40 ? 'bg-amber-400' : 'bg-slate-300'"
-                      :style="{ width: plan.avance + '%' }"
-                    ></div>
-                  </div>
-                  <span class="text-xs font-semibold text-slate-500 w-8 text-right">{{ plan.avance }}%</span>
-                </div>
-              </td>
-              <td class="px-5 py-3.5">
-                <div class="flex gap-1.5">
-                  <button class="w-7 h-7 rounded-lg flex items-center justify-center
-                                 text-slate-400 hover:bg-blue-50 hover:text-blue-600 transition-colors"
-                          title="Ver">
-                    <Eye :size="13" />
-                  </button>
-                  <button v-if="plan.estado !== 'APROBADA'"
-                          class="w-7 h-7 rounded-lg flex items-center justify-center
-                                 text-slate-400 hover:bg-amber-50 hover:text-amber-600 transition-colors"
-                          title="Editar">
-                    <Pencil :size="13" />
-                  </button>
-                </div>
+              <td class="p-4 text-center pr-6">
+                <button class="text-blue-600 hover:text-blue-800 font-semibold text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-100 transition-all">
+                  Ver/Editar
+                </button>
               </td>
             </tr>
           </tbody>
@@ -122,23 +110,42 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
-import { FilePlus, FolderOpen, FileText, BookOpen, TrendingUp, Eye, Pencil } from 'lucide-vue-next'
-import { useAuthStore } from '@/stores/auth'
-import { mockPlanificacionesDocente, computeKpisDocente, ESTADO_CONFIG } from '@/stores/auth'
-import EstadoBadge from '@/components/docente/StatusBadgeAnual.vue'
+import { computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { usePlanificacionStore } from '@/stores/planificacion'
 
-const authStore = useAuthStore()
-const planificaciones = mockPlanificacionesDocente
-const kpis = computeKpisDocente(planificaciones)
+const planificacionStore = usePlanificacionStore()
 
-const kpiCards = [
-  { label: 'Total Planificaciones', value: kpis.total,          icon: FileText,  iconBg: 'bg-blue-50',    iconColor: 'text-blue-600' },
-  { label: 'Clases Registradas',    value: kpis.clases,         icon: BookOpen,  iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600' },
-  { label: '% Avance Curricular',   value: kpis.avancePromedio + '%', icon: TrendingUp, iconBg: 'bg-violet-50', iconColor: 'text-violet-600' },
-]
+const router = useRouter()
 
-function formatDate(d) {
-  return new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric' })
+// Mapeamos los datos reactivos del store global
+const planificacionesFiltradas = computed(() => planificacionStore.planificaciones)
+
+onMounted(async () => {
+  // Disparamos la petición HTTP al montar la vista de forma asíncrona
+  await planificacionStore.fetchPlanificaciones()
+})
+
+const openModal = () => {
+
+  router.push('/planificaciones/nueva')
+}
+
+// Función semántica para inyectar clases Tailwind según el estado de la DB
+const formatStatus = (status) => {
+  if (!status) return 'bg-gray-50 text-gray-600 border-gray-200'
+  const normalized = status.toLowerCase()
+
+  if (normalized.includes('aprob') || normalized === 'aprobada') {
+    return 'bg-green-50 text-green-700 border-green-200'
+  }
+  if (normalized.includes('obs') || normalized.includes('rechaz') || normalized.includes('corregir')) {
+    return 'bg-amber-50 text-amber-700 border-amber-200'
+  }
+  if (normalized.includes('revis') || normalized.includes('envi') || normalized.includes('pend')) {
+    return 'bg-blue-50 text-blue-700 border-blue-200'
+  }
+  // Por defecto actúa como Borrador
+  return 'bg-gray-50 text-gray-600 border-gray-200'
 }
 </script>

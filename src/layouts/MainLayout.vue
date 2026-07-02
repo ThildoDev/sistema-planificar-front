@@ -253,11 +253,18 @@ onMounted(() => document.addEventListener('mousedown', handleOutsideClick))
 onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick))
 
 // ── Logout ──
-function handleLogout() {
-  authStore.logout()
-  router.push('/login')
+async function handleLogout() {
+  try {
+    // 1. Forzamos a JavaScript a esperar que el store haga el POST y limpie las credenciales
+    await authStore.logout()
+  } catch (error) {
+    console.error('Error al cerrar sesión:', error)
+  } finally {
+    // 2. Una vez que la sesión local quedó en null de forma garantizada, redirigimos
+    // Usamos replace en lugar de push para limpiar el historial de navegación del panel
+    await router.replace('/login')
+  }
 }
-
 // ── Avatar ──
 const userInitials = computed(() => {
   const name = authStore.user?.name || ''

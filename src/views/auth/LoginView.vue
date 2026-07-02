@@ -147,6 +147,9 @@ import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 import { ref } from 'vue'
 
+// Importación de iconos de Lucide (asegurate de tenerlos si los usas en el template)
+import { GraduationCap, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-vue-next'
+
 const authStore = useAuthStore()
 const router = useRouter()
 
@@ -159,14 +162,23 @@ const errorMsg = ref('')
 
 const handleSubmit = async () => {
   isLoading.value = true
+  errorMsg.value = ''
+
   try {
-    errorMsg.value = ''
-    // Ejecuta el login buscando en la lista de mocks
+    // Envía las credenciales reales hacia la base de datos mediante el store conectado
     await authStore.login(email.value, password.value)
-    // Si sale bien, redirige al panel principal
+
+    // Si la autenticación es exitosa, redirige al home
     router.push('/')
   } catch (err) {
-    errorMsg.value = err.message
+    // Realizamos un mapeo seguro de lo que responde Laravel
+    if (err.response && err.response.data) {
+      // Intenta capturar la propiedad 'Errors' (en mayúscula) o el 'message' que envía el backend
+      const backendData = err.response.data
+      errorMsg.value = backendData.message || backendData.Errors || 'Credenciales inválidas. Comprobá tu usuario y contraseña.'
+    } else {
+      errorMsg.value = 'No se pudo establecer conexión con el servidor. Verificá que el backend esté encendido.'
+    }
   } finally {
     isLoading.value = false
   }

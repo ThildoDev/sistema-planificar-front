@@ -13,6 +13,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@vueup/vue-quill": "^1.5.5",
     "axios": "^1.16.1",
     "lucide-vue-next": "^1.0.0",
     "pinia": "^3.0.4",
