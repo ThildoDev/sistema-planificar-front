@@ -63,21 +63,32 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
   }
 
   // ➕ CREAR NUEVA PLANIFICACIÓN
-  async function createPlanificacion(payload) {
-    loading.value = true
-    error.value = null
-    try {
-      const data = await planificacionService.createPlanificacion(payload)
-      // Agrega al inicio de la lista reactiva para que se renderice al instante en la tabla
-      planificaciones.value.unshift(data)
-      return data
-    } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'No se pudo crear la planificación.'
-      throw err
-    } finally {
-      loading.value = false
+async function createPlanificacion(payload) {
+  loading.value = true
+  error.value = null
+  try {
+    const data = await planificacionService.createPlanificacion(payload)
+
+    // Desempaquetamos la respuesta del backend
+    const nuevosRegistros = data.data || []
+
+    if (Array.isArray(nuevosRegistros)) {
+      // Si vienen múltiples áreas solapadas, las agregamos todas al listado
+      nuevosRegistros.forEach(registro => {
+        planificaciones.value.unshift(registro)
+      })
+    } else {
+      planificaciones.value.unshift(nuevosRegistros)
     }
+
+    return data
+  } catch (err) {
+    error.value = err.response?.data?.message || err.message || 'No se pudo crear la planificación.'
+    throw err
+  } finally {
+    loading.value = false
   }
+}
 
   // 📝 ACTUALIZAR PLANIFICACIÓN
   async function updatePlanificacion(id, payload) {
@@ -122,6 +133,66 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
     currentPlanificacion.value = null
   }
 
+// 🚀 ACCIÓN: ENVIAR A REVISIÓN (DOCENTE)
+  async function enviarARevision(id) {
+    loading.value = true
+    try {
+      await planificacionService.enviarARevision(id)
+      await fetchPlanificaciones()
+
+      // 🔔 Notificación Directa: Alerta al sistema de la campana
+      const { useNotificacionesStore } = await import('@/stores/notificaciones')
+      const notiStore = useNotificacionesStore()
+      notiStore.agregarNotificacion(`Has enviado la Planificación #${id} al Director.`, 'success')
+
+    } catch (err) {
+      error.value = err.response?.data?.Mensaje || 'Error al enviar la planificación.'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 🍏 ACCIÓN: APROBAR PLANIFICACIÓN (DIRECTOR)
+  async function aprobarPlanificacion(id) {
+    loading.value = true
+    try {
+      await planificacionService.aprobarPlanificacion(id)
+      await fetchPlanificaciones()
+
+      // 🔔 Notificación Directa al Docente
+      const { useNotificacionesStore } = await import('@/stores/notificaciones')
+      const notiStore = useNotificacionesStore()
+      notiStore.agregarNotificacion(`La Planificación #${id} ha sido aprobada por el Director.`, 'success')
+
+    } catch (err) {
+      error.value = err.response?.data?.Mensaje || 'Error al aprobar.'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  // 🍎 ACCIÓN: RECHAZAR PLANIFICACIÓN (DIRECTOR)
+  async function rechazarPlanificacion(id) {
+    loading.value = true
+    try {
+      await planificacionService.rechazarPlanificacion(id)
+      await fetchPlanificaciones()
+
+      // 🔔 Notificación Directa al Docente
+      const { useNotificacionesStore } = await import('@/stores/notificaciones')
+      const notiStore = useNotificacionesStore()
+      notiStore.agregarNotificacion(`La Planificación #${id} requiere correcciones.`, 'warning')
+
+    } catch (err) {
+      error.value = err.response?.data?.Mensaje || 'Error al rechazar.'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   return {
     planificaciones,
     currentPlanificacion,
@@ -136,6 +207,9 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
     createPlanificacion,
     updatePlanificacion,
     deletePlanificacion,
-    clearCurrent
+    clearCurrent,
+    enviarARevision,
+    aprobarPlanificacion,
+    rechazarPlanificacion
   }
 })

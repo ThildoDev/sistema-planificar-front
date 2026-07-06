@@ -18,6 +18,13 @@ const routes = [
         // Redirección inteligente inicial. El Guard global se encargará de cambiarla según el rol.
         redirect: '/planificaciones'
       },
+      // ── MÓDULO CONFIGURACIÓN / PERFIL (Disponible para todos los roles) ── [cite: 485]
+      {
+        path: 'configuracion',
+        name: 'configuracion',
+        component: () => import('@/views/auth/ConfiguracionView.vue'),
+        meta: { title: 'Configuración Perfil' }
+      },
       // Módulo Docente
       {
         path: 'planificaciones',
@@ -45,11 +52,20 @@ const routes = [
         component: () => import('@/views/director/DirectorDashboard.vue'),
         meta: { title: 'Revisiones', role: 'director' }
       },
-      // {
-      //   path: 'director',
-      //   component: () => import('@/views/director/DirectorDashboard.vue'),
-      //   meta: { title: 'Docentes', role: 'director' }
-      // },
+      // ── MÓDULO GESTIÓN DIRECTIVA (Crear Docente) ── [cite: 486]
+      {
+        path: 'docentes/crear',
+        name: 'crear-docente',
+        component: () => import('@/views/director/CrearDocenteView.vue'),
+        meta: { title: 'Registrar Docente', role: 'director' }
+      },
+      // ── MÓDULO GESTIÓN DIRECTIVA (Blanqueo de Contraseña) ── [cite: 488]
+      {
+        path: 'usuarios/reset',
+        name: 'usuarios-reset',
+        component: () => import('@/views/director/BlanqueoView.vue'),
+        meta: { title: 'Blanqueo de Contraseña', role: 'director' }
+      },
       // Módulo Admin
       {
         path: 'admin',

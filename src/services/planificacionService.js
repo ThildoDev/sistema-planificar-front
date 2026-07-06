@@ -17,5 +17,27 @@ export default {
   updatePlanificacion(id, payload) {
     return api.put(`/planificaciones/${id}`, payload)
       .then(response => response.data)
+  },
+
+  createPlanificacion(payload) {
+    return api.post('/planificaciones/anuales', payload).then(res => res.data)
+  },
+
+  // 🚀 Enviar a revisión (Docente)
+  enviarARevision(id) {
+    return api.post(`/planificaciones/anuales/${id}/estados/enviar-revision`)
+      .then(response => response.data)
+  },
+
+  // 🍏 Aprobar planificación (Director)
+  aprobarPlanificacion(id) {
+    return api.post(`/planificaciones/anuales/${id}/estados/aprobar`)
+      .then(response => response.data)
+  },
+
+  // 🍎 Rechazar planificación (Director)
+  rechazarPlanificacion(id) {
+    return api.post(`/planificaciones/anuales/${id}/estados/rechazar`)
+      .then(response => response.data)
   }
 }

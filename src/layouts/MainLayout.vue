@@ -1,15 +1,10 @@
 <template>
   <div class="flex h-screen bg-slate-50 overflow-hidden">
 
-    <!-- ══════════════════════════════════════════════
-         SIDEBAR LATERAL FIJO
-    ══════════════════════════════════════════════ -->
     <aside
       class="flex flex-col w-64 bg-white border-r border-slate-100 flex-shrink-0 z-30"
       style="box-shadow: 1px 0 16px rgba(0,0,0,0.04);"
     >
-
-      <!-- Logo superior -->
       <div class="flex items-center gap-3 px-5 py-5 border-b border-slate-100">
         <div
           class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -23,110 +18,52 @@
         </div>
       </div>
 
-      <!-- Navegación dinámica por rol -->
       <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
-
-        <!-- Etiqueta de sección -->
         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 pb-2 pt-1">
           Menú Principal
         </p>
 
-        <!-- ── Docente ── -->
         <template v-if="authStore.userRole === 'docente'">
           <NavItem v-for="item in navDocente" :key="item.to" v-bind="item" />
         </template>
 
-        <!-- ── Director ── -->
         <template v-else-if="authStore.userRole === 'director'">
           <NavItem v-for="item in navDirector" :key="item.to" v-bind="item" />
         </template>
 
-        <!-- ── Admin ── -->
         <template v-else-if="authStore.userRole === 'admin'">
           <NavItem v-for="item in navAdmin" :key="item.to" v-bind="item" />
         </template>
 
-        <!-- Separador -->
         <div class="h-px bg-slate-100 mx-2 my-2"></div>
-
-        <!-- Configuración (todos los roles) -->
         <NavItem :icon="Settings" label="Configuración" to="/configuracion" />
-
       </nav>
 
-      <!-- ── Tarjeta perfil de usuario (base fija del sidebar) ── -->
       <div class="px-3 pb-4 border-t border-slate-100 pt-3">
         <div class="flex items-center gap-3 px-3 py-3 rounded-xl bg-slate-50 ring-1 ring-slate-100">
-
-          <!-- Avatar con iniciales -->
           <div
             class="w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm text-white flex-shrink-0"
             :style="{ background: avatarGradient }"
           >
             {{ userInitials }}
           </div>
-
-          <!-- Datos -->
           <div class="flex-1 min-w-0">
             <p class="text-sm font-semibold text-slate-800 truncate">{{ authStore.user?.name }}</p>
             <p class="text-xs text-slate-400 truncate flex items-center gap-1">
               <Shield :size="10" />
-              {{ authStore.user?.roleLabel }}
+              {{ authStore.user?.roleLabel || authStore.userRole }}
             </p>
           </div>
-
-          <!-- Menú de rol-switcher rápido (solo dev) -->
-          <div class="relative" ref="roleSwitcherRef">
-            <button
-              @click="showRoleSwitcher = !showRoleSwitcher"
-              class="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400
-                     hover:bg-slate-200 hover:text-slate-600 transition-colors"
-              title="Cambiar rol (demo)"
-            >
-              <ChevronUp v-if="showRoleSwitcher" :size="14" />
-              <ChevronDown v-else :size="14" />
-            </button>
-
-            <!-- Dropdown de roles -->
-            <div
-              v-if="showRoleSwitcher"
-              class="absolute bottom-full right-0 mb-2 w-36 bg-white rounded-xl shadow-xl
-                     border border-slate-100 py-1 z-50"
-            >
-              <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 py-1.5">
-                Demo / Rol
-              </p>
-              <button
-                v-for="role in ['docente', 'director', 'admin']"
-                :key="role"
-                @click="switchRole(role)"
-                class="w-full text-left px-3 py-2 text-sm capitalize transition-colors"
-                :class="authStore.userRole === role
-                  ? 'text-blue-600 font-semibold bg-blue-50'
-                  : 'text-slate-700 hover:bg-slate-50'"
-              >
-                {{ role }}
-              </button>
-            </div>
-          </div>
-
         </div>
       </div>
-
     </aside>
 
-    <!-- ══════════════════════════════════════════════
-         ÁREA PRINCIPAL (Header + Contenido)
-    ══════════════════════════════════════════════ -->
     <div class="flex flex-col flex-1 overflow-hidden">
 
-      <!-- ── Header Superior Sticky ── -->
       <header
         class="flex items-center gap-4 px-6 py-3.5 bg-white border-b border-slate-100 flex-shrink-0 z-20"
         style="box-shadow: 0 1px 12px rgba(0,0,0,0.04);"
       >
-
-        <!-- Búsqueda general -->
         <div class="flex-1 max-w-sm relative">
           <span class="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
             <Search :size="15" class="text-slate-400" />
@@ -142,49 +79,67 @@
           />
         </div>
 
-        <!-- Spacer -->
         <div class="flex-1"></div>
 
-        <!-- Notificaciones -->
-        <button
-          class="relative w-10 h-10 rounded-xl flex items-center justify-center
-                 text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors"
-          title="Notificaciones"
-        >
-          <Bell :size="19" />
-          <span
-            v-if="authStore.user?.notifications > 0"
-            class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1
-                   bg-red-500 text-white text-[10px] font-bold rounded-full
-                   flex items-center justify-center leading-none"
+        <div class="relative" ref="notificationDropdownRef">
+          <button
+            @click="toggleNotifications"
+            class="relative w-10 h-10 rounded-xl flex items-center justify-center
+                   text-slate-500 hover:bg-slate-100 hover:text-slate-700 transition-colors focus:outline-none"
+            title="Notificaciones"
           >
-            {{ authStore.user.notifications > 9 ? '9+' : authStore.user.notifications }}
-          </span>
-        </button>
+            <Bell :size="19" />
+            <span
+              v-if="notificacionesStore.unreadCount > 0"
+              class="absolute top-1.5 right-1.5 min-w-[18px] h-[18px] px-1
+                     bg-red-500 text-white text-[10px] font-bold rounded-full
+                     flex items-center justify-center leading-none animate-pulse"
+            >
+              {{ notificacionesStore.unreadCount }}
+            </span>
+          </button>
 
-        <!-- Separador vertical -->
+          <div
+            v-if="showNotifications"
+            class="absolute right-0 mt-2 w-80 bg-white border border-slate-100 rounded-xl shadow-xl py-1 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150"
+          >
+            <div class="px-4 py-2.5 border-b border-slate-50 bg-slate-50/50 flex justify-between items-center">
+              <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Notificaciones</span>
+              <button @click="notificacionesStore.marcarTodasComoLeidas()" class="text-xxs font-semibold text-blue-600 hover:text-blue-800">Marcar leídas</button>
+            </div>
+            <div class="max-h-64 overflow-y-auto divide-y divide-slate-50">
+              <p v-if="notificacionesStore.lista.length === 0" class="text-xs text-slate-400 text-center py-6">No tenés alertas pendientes.</p>
+              <div
+                v-for="noti in notificacionesStore.lista"
+                :key="noti.id"
+                class="p-3 text-xs flex gap-2.5 items-start transition-colors"
+                :class="!noti.leida ? 'bg-blue-50/20' : ''"
+              >
+                <span class="mt-0.5">{{ noti.tipo === 'success' ? '✅' : '⚠️' }}</span>
+                <div class="flex-1">
+                  <p class="text-slate-700 font-medium leading-normal">{{ noti.mensaje }}</p>
+                  <span class="text-[10px] text-slate-400 block mt-1 font-semibold">{{ noti.fecha }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="w-px h-7 bg-slate-200"></div>
 
-        <!-- IdentidadCard compacta -->
         <div class="flex items-center gap-2.5">
-
-          <!-- Avatar compacto -->
           <div
             class="w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs text-white flex-shrink-0"
             :style="{ background: avatarGradient }"
           >
             {{ userInitials }}
           </div>
-
-          <!-- Nombre + Rol -->
           <div class="hidden sm:block">
             <p class="text-sm font-semibold text-slate-800 leading-tight">
-              {{ authStore.user?.prefix }} {{ authStore.user?.name.split(' ').slice(-1)[0] }}
+              {{ authStore.user?.prefix || 'Prof.' }} {{ authStore.user?.name?.split(' ').slice(-1)[0] }}
             </p>
-            <p class="text-[11px] text-slate-400 leading-tight">{{ authStore.user?.roleLabel }}</p>
+            <p class="text-[11px] text-slate-400 leading-tight">{{ authStore.user?.roleLabel || authStore.userRole }}</p>
           </div>
-
-          <!-- Botón logout -->
           <button
             @click="handleLogout"
             class="w-8 h-8 ml-1 rounded-lg flex items-center justify-center
@@ -193,17 +148,14 @@
           >
             <LogOut :size="16" />
           </button>
-
         </div>
       </header>
 
-      <!-- ── Área de contenido central dinámica ── -->
       <main class="flex-1 overflow-y-auto bg-slate-50 p-6">
         <RouterView />
       </main>
 
     </div>
-
   </div>
 </template>
 
@@ -212,60 +164,49 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   GraduationCap, Search, Bell, LogOut, Settings, Shield,
-  ChevronDown, ChevronUp,
   // Docente
   LayoutDashboard, FilePlus, FolderOpen, BookOpen, TrendingUp,
   // Director
   ClipboardList, UserPlus, Users,
   // Admin
-  KeyRound, UserSearch,
-  BarChart2,
+  KeyRound, UserSearch, BarChart2,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
+import { useNotificacionesStore } from '@/stores/notificaciones' // 🟢 Conectamos el store de la campana
 
 const router = useRouter()
 const authStore = useAuthStore()
+const notificacionesStore = useNotificacionesStore()
 
-// ── Búsqueda ──
 const searchQuery = ref('')
+const showNotifications = ref(false)
+const notificationDropdownRef = ref(null)
 
-// ── Role switcher dropdown ──
-const showRoleSwitcher = ref(false)
-const roleSwitcherRef = ref(null)
-
-// function switchRole(role) {
-//   authStore.switchRole(role)
-//   showRoleSwitcher.value = false
-// }
-function switchRole(role) {
-  authStore.switchRole(role)
-  showRoleSwitcher.value = false
-  router.push('/')
+const toggleNotifications = () => {
+  showNotifications.value = !showNotifications.value
+  if (showNotifications.value) {
+    notificacionesStore.marcarTodasComoLeidas()
+  }
 }
 
-// Cierra dropdown al hacer click afuera
 function handleOutsideClick(e) {
-  if (roleSwitcherRef.value && !roleSwitcherRef.value.contains(e.target)) {
-    showRoleSwitcher.value = false
+  if (notificationDropdownRef.value && !notificationDropdownRef.value.contains(e.target)) {
+    showNotifications.value = false
   }
 }
 onMounted(() => document.addEventListener('mousedown', handleOutsideClick))
 onUnmounted(() => document.removeEventListener('mousedown', handleOutsideClick))
 
-// ── Logout ──
 async function handleLogout() {
   try {
-    // 1. Forzamos a JavaScript a esperar que el store haga el POST y limpie las credenciales
     await authStore.logout()
   } catch (error) {
     console.error('Error al cerrar sesión:', error)
   } finally {
-    // 2. Una vez que la sesión local quedó en null de forma garantizada, redirigimos
-    // Usamos replace en lugar de push para limpiar el historial de navegación del panel
     await router.replace('/login')
   }
 }
-// ── Avatar ──
+
 const userInitials = computed(() => {
   const name = authStore.user?.name || ''
   return name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()
@@ -278,24 +219,16 @@ const ROLE_GRADIENTS = {
 }
 const avatarGradient = computed(() => ROLE_GRADIENTS[authStore.userRole] || ROLE_GRADIENTS.docente)
 
-// ──────────────────────────────────────────────
-//  MENÚS DE NAVEGACIÓN
-// ──────────────────────────────────────────────
-
 const navDocente = [
-  { icon: LayoutDashboard, label: 'Mi Panel',            to: '/docente/dashboard' },
-  { icon: FilePlus,        label: 'Crear Planificación', to: '/docente/planificaciones/crear' },
-  { icon: FolderOpen,      label: 'Mis Planificaciones', to: '/docente/planificaciones' },
-  { icon: BookOpen,        label: 'Libro de Temas',        to: '/docente/libro-temas' },
-  { icon: TrendingUp,      label: 'Mi Avance',             to: '/docente/avance' },
+  { icon: LayoutDashboard, label: 'Mi Panel',            to: '/planificaciones' },
+  { icon: FilePlus,        label: 'Crear Planificación', to: '/planificaciones/nueva' },
+  { icon: FolderOpen,      label: 'Mis Planificaciones', to: '/planificaciones' },
 ]
 
 const navDirector = [
-  { icon: LayoutDashboard, label: 'Panel Principal',          to: '/dashboard' },
   { icon: ClipboardList,   label: 'Planificaciones Recibidas', to: '/revisiones' },
-  { icon: UserPlus,        label: 'Crear Docente',            to: '/docentes/crear' },
-  { icon: Users,           label: 'Mis Docentes',             to: '/docentes' },
-  { icon: BarChart2,       label: 'Reportes',                 to: '/reportes' },
+  { icon: UserPlus,        label: 'Crear Docente',             to: '/docentes/crear' },
+  { icon: KeyRound,        label: 'Blanqueo Contraseña',        to: '/usuarios/reset' },
 ]
 
 const navAdmin = [
@@ -306,9 +239,7 @@ const navAdmin = [
 ]
 </script>
 
-<!-- NavItem — componente inline para cada enlace del menú -->
 <script>
-// Definición del sub-componente NavItem (reutilizable y colocado en el mismo archivo)
 import { defineComponent, h } from 'vue'
 import { RouterLink, useLink } from 'vue-router'
 
@@ -342,13 +273,12 @@ export const NavItem = defineComponent({
           class: active ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-600',
         }),
         h('span', { class: 'flex-1' }, this.label),
-        active
-          ? h('span', {
-              class: 'w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0',
-            })
-          : null,
+        active ? h('span', { class: 'w-1.5 h-1.5 rounded-full bg-blue-500 flex-shrink-0' }) : null,
       ]
     )
   },
 })
 </script>
+<style>
+.text-xxs { font-size: 0.65rem; }
+</style>

@@ -1,189 +1,109 @@
-<!-- src/views/director/DirectorDashboard.vue -->
 <template>
-  <div class="director-dashboard">
-    <!-- ── CABECERA ── -->
-    <div class="dashboard-header">
-      <div class="header-content">
-        <h1 class="dashboard-title">
-          <ClipboardList class="title-icon" />
-          Panel de Dirección
-        </h1>
-        <p class="dashboard-subtitle">
-          Bienvenido, <strong>{{ nombreDirector }}</strong> —
-          {{ fechaHoy }}
-        </p>
+  <div class="max-w-7xl mx-auto space-y-6 p-6">
+    <div class="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex justify-between items-center">
+      <div>
+        <h1 class="text-2xl font-black text-gray-900">Panel de Supervisión Directiva</h1>
+        <p class="text-sm text-gray-500">Revisión, aprobación y devoluciones de propuestas pedagógicas anuales.</p>
       </div>
-
-      <button class="btn-primary" @click="irAPlanificaciones">
-        <Eye class="btn-icon" />
-        Ver todas las planificaciones
-      </button>
+      <span class="px-3 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-xs font-bold uppercase">Rol: Director</span>
     </div>
 
-    <!-- ── KPI CARDS ── -->
-    <section class="kpi-grid">
-      <KpiCard
-        title="Pendientes de revisión"
-        :value="stats.pendientes"
-        :loading="loadingStats"
-        color="yellow"
-        icon="clock"
-        subtitle="Esperan tu revisión"
-      />
-      <KpiCard
-        title="Aprobadas"
-        :value="stats.aprobadas"
-        :loading="loadingStats"
-        color="green"
-        icon="check-circle"
-        subtitle="Este período"
-      />
-      <KpiCard
-        title="Rechazadas"
-        :value="stats.rechazadas"
-        :loading="loadingStats"
-        color="red"
-        icon="x-circle"
-        subtitle="Con observaciones"
-      />
-      <KpiCard
-        title="Total docentes"
-        :value="stats.docentes"
-        :loading="loadingStats"
-        color="blue"
-        icon="users"
-        subtitle="Activos en el sistema"
-      />
-    </section>
-
-    <!-- ── PLANIFICACIONES RECIENTES ── -->
-    <section class="section-card">
-      <div class="section-header">
-        <h2 class="section-title">
-          <FileText class="section-icon" />
-          Planificaciones recientes
-        </h2>
-        <router-link to="/director/planificaciones" class="link-ver-todas">
-          Ver todas →
-        </router-link>
+    <div class="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div class="p-5 border-b border-gray-100 bg-gray-50/50">
+        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Planificaciones Pendientes de Evaluación</h3>
       </div>
 
-      <!-- Filtros rápidos de estado -->
-      <div class="filtros-rapidos">
-        <button
-          v-for="estado in estadosFiltro"
-          :key="estado.value"
-          class="chip-filtro"
-          :class="{ 'chip-activo': filtroActivo === estado.value }"
-          @click="cambiarFiltro(estado.value)"
-        >
-          {{ estado.label }}
-        </button>
+      <div v-if="planificacionStore.loading" class="p-8 text-center text-gray-500 font-medium">
+        Cargando registros institucionales...
       </div>
 
-      <!-- Tabla de planificaciones -->
-      <PlanificacionesRecibidasTable
-        :planificaciones="planificacionesFiltradas"
-        :loading="loading"
-        compact
-        @revisar="irARevision"
-      />
-    </section>
-
-    <!-- ── ACCESOS RÁPIDOS ── -->
-    <section class="accesos-rapidos">
-      <h2 class="section-title">Accesos rápidos</h2>
-      <div class="accesos-grid">
-        <router-link to="/director/planificaciones" class="acceso-card">
-          <ClipboardList class="acceso-icon text-blue-500" />
-          <span>Revisar Planificaciones</span>
-        </router-link>
-        <router-link to="/director/usuarios" class="acceso-card">
-          <Users class="acceso-icon text-purple-500" />
-          <span>Gestionar Docentes</span>
-        </router-link>
+      <div v-else-if="planificacionesPendientes.length === 0" class="p-12 text-center text-gray-400 font-medium text-sm">
+        🎉 No quedan planificaciones pendientes de revisión técnica.
       </div>
-    </section>
+
+      <table v-else class="w-full text-left border-collapse text-sm">
+        <thead>
+          <tr class="bg-gray-100/70 text-gray-600 font-bold text-xs uppercase tracking-wider border-b border-gray-200">
+            <th class="p-4">Docente</th>
+            <th class="p-4">Área / Espacio</th>
+            <th class="p-4">Fecha Presentación</th>
+            <th class="p-4 text-center">Acciones Directivas</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          <tr v-for="p in planificacionesPendientes" :key="p.id" class="hover:bg-gray-50/50 transition-colors">
+            <td class="p-4 font-semibold text-gray-900">
+              {{ p.persona_cargo_cursado?.persona_cargo?.persona?.nombres || 'Docente' }}
+              {{ p.persona_cargo_cursado?.persona_cargo?.persona?.apellidos || '' }}
+            </td>
+            <td class="p-4 text-gray-700 font-medium">{{ p.area?.area || `Área #${p.areas_id}` }}</td>
+            <td class="p-4 text-gray-500">{{ p.fecha_presentacion }}</td>
+            <td class="p-4 flex items-center justify-center gap-3">
+              <button
+                @click="procesarAprobacion(p.id)"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+              >
+                ✓ Aprobar
+              </button>
+              <button
+                @click="procesarRechazo(p.id)"
+                class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+              >
+                ✕ Rechazar
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { ClipboardList, FileText, Eye, Users } from 'lucide-vue-next'
-import { useRevision } from '@/composables/useRevision'
-import { useAuthStore } from '@/stores/auth'
-import KpiCard from '@/components/shared/KpiCard.vue'
-import PlanificacionesRecibidasTable from '@/components/director/PlanificacionesRecibidasTable.vue'
+import { onMounted, computed } from 'vue'
+import { usePlanificacionStore } from '@/stores/planificacion'
+import { useToastStore } from '@/stores/toast' // 🟢 Importamos el store de notificaciones
 
-const router = useRouter()
-const authStore = useAuthStore()
-const { planificaciones, loading, cargarPlanificaciones, irARevision } = useRevision()
+const planificacionStore = usePlanificacionStore()
+const toast = useToastStore() // 🟢 Inicializamos el gestor de avisos
 
-// ── Datos del director logueado ──
-const nombreDirector = computed(() => authStore.user?.name || 'Director')
-const fechaHoy = computed(() =>
-  new Date().toLocaleDateString('es-AR', {
-    weekday: 'long',
-    day: 'numeric',
-    month: 'long',
-    year: 'numeric',
-  }),
-)
+// 🔒 FILTRO DIRECTIVO: Trae ÚNICAMENTE las planificaciones que el docente ya envió
+const planificacionesPendientes = computed(() => {
+  return planificacionStore.planificaciones.filter(p => {
+    if (!p.estados || p.estados.length === 0) return false // Oculta si no tiene estados (es un Borrador puro)
 
-// ── Stats calculados desde las planificaciones cargadas ──
-const loadingStats = computed(() => loading)
-
-const stats = computed(() => {
-  const lista = planificaciones.value
-  const getUltimoEstado = (p) => {
-    const estados = p.estados_anual || []
-    if (!estados.length) return null
-    return [...estados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0]?.estado
-  }
-
-  return {
-    pendientes: lista.filter((p) => ['Pendiente', 'En Proceso'].includes(getUltimoEstado(p)))
-      .length,
-    aprobadas: lista.filter((p) => getUltimoEstado(p) === 'Aprobado').length,
-    rechazadas: lista.filter((p) => getUltimoEstado(p) === 'Rechazado').length,
-    docentes: new Set(lista.map((p) => p.persona_cargo_cursado?.persona_cargo?.persona?.id)).size,
-  }
+    const ultimoEstado = p.estados[p.estados.length - 1].estado.toLowerCase()
+    // Filtramos estrictamente: Solo se listan si están "Enviada", "Pendiente" o bajo revisión directiva
+    return ultimoEstado === 'enviada' || ultimoEstado === 'pendiente' || ultimoEstado === 'en revisión'
+  })
 })
 
-// ── Filtro rápido por estado ──
-const filtroActivo = ref('')
-const estadosFiltro = [
-  { value: '', label: 'Todas' },
-  { value: 'Pendiente', label: 'Pendientes' },
-  { value: 'En Proceso', label: 'En Proceso' },
-  { value: 'Aprobado', label: 'Aprobadas' },
-  { value: 'Rechazado', label: 'Rechazadas' },
-]
-
-const planificacionesFiltradas = computed(() => {
-  if (!filtroActivo.value) return planificaciones.value.slice(0, 10)
-  return planificaciones.value
-    .filter((p) => {
-      const estados = p.estados_anual || []
-      const ultimo = [...estados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha))[0]?.estado
-      return ultimo === filtroActivo.value
-    })
-    .slice(0, 10)
-})
-
-function cambiarFiltro(estado) {
-  filtroActivo.value = estado
-}
-
-function irAPlanificaciones() {
-  router.push('/director/planificaciones')
-}
-
-// ── Init ──
 onMounted(async () => {
-  await cargarPlanificaciones()
+  await planificacionStore.fetchPlanificaciones()
 })
-</script>
 
+const procesarAprobacion = async (id) => {
+  if (confirm("¿Confirmas la aprobación técnico-pedagógica de este documento?")) {
+    try {
+      await planificacionStore.aprobarPlanificacion(id)
+      // 🔔 NOTIFICACIÓN: Alerta de éxito local y notificación simulada al docente
+      toast.showToast('✓ Planificación Aprobada. Se ha enviado una notificación automática al Docente.', 'success')
+    } catch (err) {
+      toast.showToast('No se pudo procesar la aprobación en el servidor.', 'error')
+    }
+  }
+}
+
+const procesarRechazo = async (id) => {
+  if (confirm("¿Deseas rechazar esta planificación para que el docente aplique correcciones?")) {
+    try {
+      await planificacionStore.rechazarPlanificacion(id)
+      // 🔔 NOTIFICACIÓN: Alerta al directivo y aviso de re-envío de correcciones al docente
+      toast.showToast('✕ Planificación Rechazada. El Docente ha sido notificado para aplicar correcciones.', 'warning')
+    } catch (err) {
+      toast.showToast('No se pudo procesar el rechazo en el servidor.', 'error')
+    }
+  }
+}
+</script>
 
