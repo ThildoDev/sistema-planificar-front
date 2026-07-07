@@ -23,21 +23,21 @@ export default {
     return api.post('/planificaciones/anuales', payload).then(res => res.data)
   },
 
-  // 🚀 Enviar a revisión (Docente)
+  // Enviar a revisión (Docente)
   enviarARevision(id) {
     return api.post(`/planificaciones/anuales/${id}/estados/enviar-revision`)
       .then(response => response.data)
   },
 
-  // 🍏 Aprobar planificación (Director)
+  // Aprobar planificación (Director)
   aprobarPlanificacion(id) {
     return api.post(`/planificaciones/anuales/${id}/estados/aprobar`)
       .then(response => response.data)
   },
 
-  // 🍎 Rechazar planificación (Director)
-  rechazarPlanificacion(id) {
-    return api.post(`/planificaciones/anuales/${id}/estados/rechazar`)
+// Rechazar planificación (Director) enviando las observaciones
+  rechazarPlanificacion(id, payload) {
+    return api.post(`/planificaciones/anuales/${id}/estados/rechazar`, payload)
       .then(response => response.data)
   }
 }

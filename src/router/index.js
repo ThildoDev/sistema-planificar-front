@@ -25,6 +25,7 @@ const routes = [
         component: () => import('@/views/auth/ConfiguracionView.vue'),
         meta: { title: 'Configuración Perfil' }
       },
+
       // Módulo Docente
       {
         path: 'planificaciones',
@@ -44,7 +45,7 @@ const routes = [
       {
         path: 'planificaciones/ver/:id',
         component: () => import('@/views/docente/VerPlanificacion.vue'),
-        meta: { title: 'Ver Planificación', role: 'docente' }
+        meta: { title: 'Ver Planificación' } // 🟢 SE QUITÓ EL ROL EXCLUSIVO PARA QUE EL DIRECTOR TAMBIÉN PUEDA ENTRAR
       },
       // Módulo Director
       {

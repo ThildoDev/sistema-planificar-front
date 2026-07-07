@@ -92,15 +92,42 @@
                   {{ obtenerUltimoEstado(item) }}
                 </span>
               </td>
-              <td class="p-4 text-center pr-6">
-                <button
-                  v-if="obtenerUltimoEstado(item).toLowerCase() === 'borrador' || obtenerUltimoEstado(item).toLowerCase() === 'pendiente'"
-                  @click.prevent="procesarEnvioDirector(item?.id)"
-                  class="text-blue-600 hover:text-blue-800 font-semibold text-xs bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg border border-blue-100 transition-all uppercase tracking-wider"
-                >
-                  enviar a revisión
-                </button>
-                <span v-else class="text-xs font-bold text-gray-400 italic">Enviado</span>
+             <td class="p-4">
+                <span class="px-2.5 py-1 rounded-full text-xs font-semibold tracking-wide border uppercase" :class="formatStatus(obtenerUltimoEstado(item))">
+                  {{ obtenerUltimoEstado(item) }}
+                </span>
+              </td>
+              <td class="p-4 pr-6">
+                <div class="flex items-center justify-center gap-2">
+
+                  <button
+                    @click.prevent="router.push(`/planificaciones/ver/${item?.id}`)"
+                    class="inline-flex items-center gap-1 bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all border border-slate-200 uppercase tracking-wider"
+                  >
+                    👁️ Ver
+                  </button>
+
+                  <button
+                    v-if="obtenerUltimoEstado(item).toLowerCase() === 'borrador'"
+                    @click.prevent="procesarEnvioDirector(item?.id)"
+                    class="text-white bg-blue-600 hover:bg-blue-700 font-bold text-xs px-2.5 py-1.5 rounded-lg shadow-sm shadow-blue-600/10 transition-all uppercase tracking-wider"
+                  >
+                    🚀 Enviar
+                  </button>
+
+                  <button
+                    v-else-if="obtenerUltimoEstado(item).toLowerCase().includes('rechaz') || obtenerUltimoEstado(item).toLowerCase().includes('corregir') || obtenerUltimoEstado(item).toLowerCase().includes('obs')"
+                    @click.prevent="router.push(`/planificaciones/editar/${item?.id}`)"
+                    class="text-white bg-orange-500 hover:bg-orange-600 font-bold text-xs px-2.5 py-1.5 rounded-lg shadow-sm shadow-orange-500/10 transition-all uppercase tracking-wider"
+                  >
+                    ✏️ Corregir
+                  </button>
+
+                  <span v-else class="text-xs font-bold text-slate-400 italic px-2">
+                    Enviado
+                  </span>
+
+                </div>
               </td>
             </tr>
           </tbody>

@@ -13,7 +13,7 @@
         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Planificaciones Pendientes de Evaluación</h3>
       </div>
 
-      <div v-if="planificacionStore.loading" class="p-8 text-center text-gray-500 font-medium">
+      <div v-if="planificacionStore.loading" class="p-8 text-center text-gray-500 font-medium animate-pulse">
         Cargando registros institucionales...
       </div>
 
@@ -38,18 +38,13 @@
             </td>
             <td class="p-4 text-gray-700 font-medium">{{ p.area?.area || `Área #${p.areas_id}` }}</td>
             <td class="p-4 text-gray-500">{{ p.fecha_presentacion }}</td>
-            <td class="p-4 flex items-center justify-center gap-3">
+
+            <td class="p-4 text-center">
               <button
-                @click="procesarAprobacion(p.id)"
-                class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
+                @click.prevent="irAEvaluar(p.id)"
+                class="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold transition-all shadow-md shadow-blue-600/10 uppercase tracking-wider"
               >
-                ✓ Aprobar
-              </button>
-              <button
-                @click="procesarRechazo(p.id)"
-                class="bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-sm"
-              >
-                ✕ Rechazar
+                👁️ Evaluar y Revisar
               </button>
             </td>
           </tr>
@@ -61,11 +56,11 @@
 
 <script setup>
 import { onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router' // 🟢 Importamos el router para la redirección dinámica
 import { usePlanificacionStore } from '@/stores/planificacion'
-import { useToastStore } from '@/stores/toast' // 🟢 Importamos el store de notificaciones
 
 const planificacionStore = usePlanificacionStore()
-const toast = useToastStore() // 🟢 Inicializamos el gestor de avisos
+const router = useRouter() // 🟢 Declaramos el enrutador
 
 // 🔒 FILTRO DIRECTIVO: Trae ÚNICAMENTE las planificaciones que el docente ya envió
 const planificacionesPendientes = computed(() => {
@@ -82,28 +77,8 @@ onMounted(async () => {
   await planificacionStore.fetchPlanificaciones()
 })
 
-const procesarAprobacion = async (id) => {
-  if (confirm("¿Confirmas la aprobación técnico-pedagógica de este documento?")) {
-    try {
-      await planificacionStore.aprobarPlanificacion(id)
-      // 🔔 NOTIFICACIÓN: Alerta de éxito local y notificación simulada al docente
-      toast.showToast('✓ Planificación Aprobada. Se ha enviado una notificación automática al Docente.', 'success')
-    } catch (err) {
-      toast.showToast('No se pudo procesar la aprobación en el servidor.', 'error')
-    }
-  }
-}
-
-const procesarRechazo = async (id) => {
-  if (confirm("¿Deseas rechazar esta planificación para que el docente aplique correcciones?")) {
-    try {
-      await planificacionStore.rechazarPlanificacion(id)
-      // 🔔 NOTIFICACIÓN: Alerta al directivo y aviso de re-envío de correcciones al docente
-      toast.showToast('✕ Planificación Rechazada. El Docente ha sido notificado para aplicar correcciones.', 'warning')
-    } catch (err) {
-      toast.showToast('No se pudo procesar el rechazo en el servidor.', 'error')
-    }
-  }
+// 🟢 Redirección limpia compartiendo la vista perimetral liberada en index.js
+const irAEvaluar = (id) => {
+  router.push(`/planificaciones/ver/${id}`)
 }
 </script>
-

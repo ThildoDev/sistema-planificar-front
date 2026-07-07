@@ -8,7 +8,7 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
   const loading = ref(false)
   const error = ref(null)
 
-  // 📊 KPIs Calculados Reactivamente (Insensibles a Mayúsculas/Minúsculas)
+  //  KPIs Calculados Reactivamente (Insensibles a Mayúsculas/Minúsculas)
   const totalEntregadas = computed(() => planificaciones.value.length)
 
   const totalAprobadas = computed(() =>
@@ -32,7 +32,7 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
     }).length
   )
 
-  // 🔄 TRAER TODAS LAS PLANIFICACIONES
+  // TRAER TODAS LAS PLANIFICACIONES
   async function fetchPlanificaciones() {
     loading.value = true
     error.value = null
@@ -47,7 +47,7 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
     }
   }
 
-  // 🔍 TRAER PLANIFICACIÓN POR ID
+  // TRAER PLANIFICACIÓN POR ID
   async function fetchById(id) {
     loading.value = true
     error.value = null
@@ -62,7 +62,7 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
     }
   }
 
-  // ➕ CREAR NUEVA PLANIFICACIÓN
+  // CREAR NUEVA PLANIFICACIÓN
 async function createPlanificacion(payload) {
   loading.value = true
   error.value = null
@@ -90,7 +90,7 @@ async function createPlanificacion(payload) {
   }
 }
 
-  // 📝 ACTUALIZAR PLANIFICACIÓN
+  // ACTUALIZAR PLANIFICACIÓN
   async function updatePlanificacion(id, payload) {
     loading.value = true
     error.value = null
@@ -111,7 +111,7 @@ async function createPlanificacion(payload) {
     }
   }
 
-  // ❌ ELIMINAR PLANIFICACIÓN
+  // ELIMINAR PLANIFICACIÓN
   async function deletePlanificacion(id) {
     loading.value = true
     error.value = null
@@ -128,19 +128,19 @@ async function createPlanificacion(payload) {
     }
   }
 
-  // 🧹 LIMPIAR SELECCIÓN ACTUAL
+  // LIMPIAR SELECCIÓN ACTUAL
   function clearCurrent() {
     currentPlanificacion.value = null
   }
 
-// 🚀 ACCIÓN: ENVIAR A REVISIÓN (DOCENTE)
+// ACCIÓN: ENVIAR A REVISIÓN (DOCENTE)
   async function enviarARevision(id) {
     loading.value = true
     try {
       await planificacionService.enviarARevision(id)
       await fetchPlanificaciones()
 
-      // 🔔 Notificación Directa: Alerta al sistema de la campana
+      // Notificación Directa: Alerta al sistema de la campana
       const { useNotificacionesStore } = await import('@/stores/notificaciones')
       const notiStore = useNotificacionesStore()
       notiStore.agregarNotificacion(`Has enviado la Planificación #${id} al Director.`, 'success')
@@ -153,14 +153,14 @@ async function createPlanificacion(payload) {
     }
   }
 
-  // 🍏 ACCIÓN: APROBAR PLANIFICACIÓN (DIRECTOR)
+  // ACCIÓN: APROBAR PLANIFICACIÓN (DIRECTOR)
   async function aprobarPlanificacion(id) {
     loading.value = true
     try {
       await planificacionService.aprobarPlanificacion(id)
       await fetchPlanificaciones()
 
-      // 🔔 Notificación Directa al Docente
+      // Notificación Directa al Docente
       const { useNotificacionesStore } = await import('@/stores/notificaciones')
       const notiStore = useNotificacionesStore()
       notiStore.agregarNotificacion(`La Planificación #${id} ha sido aprobada por el Director.`, 'success')
@@ -173,20 +173,20 @@ async function createPlanificacion(payload) {
     }
   }
 
-  // 🍎 ACCIÓN: RECHAZAR PLANIFICACIÓN (DIRECTOR)
-  async function rechazarPlanificacion(id) {
+  // ACCIÓN: RECHAZAR PLANIFICACIÓN (DIRECTOR)
+ async function rechazarPlanificacion(id, payload) {
     loading.value = true
     try {
-      await planificacionService.rechazarPlanificacion(id)
+      // Pasamos las observaciones al servicio
+      await planificacionService.rechazarPlanificacion(id, payload)
       await fetchPlanificaciones()
 
-      // 🔔 Notificación Directa al Docente
+      // 🔔 Notificación Directa a la campana
       const { useNotificacionesStore } = await import('@/stores/notificaciones')
       const notiStore = useNotificacionesStore()
-      notiStore.agregarNotificacion(`La Planificación #${id} requiere correcciones.`, 'warning')
-
+      notiStore.agregarNotificacion(`La Planificación #${id} requiere correcciones urgentes.`, 'warning')
     } catch (err) {
-      error.value = err.response?.data?.Mensaje || 'Error al rechazar.'
+      error.value = err.response?.data?.Mensaje || 'Error al procesar la devolución.'
       throw err
     } finally {
       loading.value = false
