@@ -199,8 +199,8 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, nextTick } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { usePlanificacionStore } from '@/stores/planificacion'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/plugins/axios'
@@ -208,6 +208,7 @@ import { QuillEditor } from '@vueup/vue-quill'
 import '@vueup/vue-quill/dist/vue-quill.snow.css'
 
 const router = useRouter()
+const route = useRoute()
 const planificacionStore = usePlanificacionStore()
 const authStore = useAuthStore()
 
@@ -216,10 +217,16 @@ const listaAreas = ref([])
 const listaCursados = ref([])
 const errorLocal = ref(null)
 
-// 📦 Arreglo que irá acumulando las distintas áreas añadidas por el docente
+// 🔑 Forzador de reactividad para limpiar Quill sin dejar residuos en el DOM
+const editorKey = ref(0)
+
+// Detectar si estamos editando un registro existente
+const esEdicion = computed(() => !!route.params.id)
+
+// 📦 Arreglo que acumula las áreas
 const areasAgregadas = ref([])
 
-// Formulario limpio para redactar un área a la vez
+// Formulario limpio para redactar o editar
 const areaForm = ref({
   fecha_presentacion: new Date().toISOString().split('T')[0],
   areas_id: '',
@@ -234,26 +241,58 @@ const areaForm = ref({
 onMounted(async () => {
   try {
     errorLocal.value = null
-    // Carga de catálogos institucionales directos de Laravel
+
     const resAreas = await api.get('/areas')
     listaAreas.value = Array.isArray(resAreas.data) ? resAreas.data : resAreas.data.data || []
 
     const resCursados = await api.get('/cursados')
     listaCursados.value = Array.isArray(resCursados.data) ? resCursados.data : resCursados.data.data || []
+
+    if (esEdicion.value) {
+      const idPlanificacion = route.params.id
+      const res = await api.get(`/planificaciones/${idPlanificacion}`)
+      const p = res.data
+
+      // Seteamos el formulario garantizando strings limpios
+      areaForm.value = {
+        id: p.id,
+        fecha_presentacion: p.fecha_presentacion ? String(p.fecha_presentacion).split('T')[0] : new Date().toISOString().split('T')[0],
+        areas_id: p.areas_id,
+        cursado_id: p.persona_cargo_cursado_id,
+        saberes: p.saberes || '',
+        aprendizajes_esperados: p.aprendizajes_esperados || '',
+        criterios: p.criterios || '',
+        diagnostico: p.diagnostico || '',
+        bibliografia: p.bibliografia || ''
+      }
+
+      areasAgregadas.value = [{ ...areaForm.value }]
+
+      // 🟢 FORZAMOS A VUE A RE-RENDERIZAR LAS INSTANCIAS DE QUILL CON LOS DATOS TRÍDOS DE LARAVEL
+      nextTick(() => {
+        editorKey.value++
+      })
+    }
   } catch (err) {
     console.error("Fallo de sincronización:", err)
-    errorLocal.value = "Error de enlace al sincronizar los catálogos con Laravel."
+    errorLocal.value = "Error de enlace al sincronizar o recuperar los datos desde Laravel."
   }
 })
 
 // Función para solapar/acoplar el área actual al listado en memoria
 const agregarAreaTemporal = () => {
+  if (esEdicion.value) {
+    // Si estamos editando, actualizamos directamente el bloque en el listado acumulativo
+    areasAgregadas.value[0] = { ...areaForm.value }
+    modoVista.value = 'previsualizacion'
+    return
+  }
+
   if (!areaForm.value.areas_id || !areaForm.value.cursado_id || !areaForm.value.saberes) {
     errorLocal.value = "Por favor, completa los campos del área y escribe el contenido antes de acoplar."
     return
   }
 
-  // Verificamos si ya agregó esa misma área para que no se duplique en la previsualización
   const duplicado = areasAgregadas.value.some(a => a.areas_id === areaForm.value.areas_id)
   if (duplicado) {
     errorLocal.value = "Este espacio curricular ya se encuentra solapado en la propuesta anual actual."
@@ -261,19 +300,23 @@ const agregarAreaTemporal = () => {
   }
 
   errorLocal.value = null
-  // Empujamos una copia profunda del formulario al listado acumulativo
   areasAgregadas.value.push({ ...areaForm.value })
 
-  // Reseteamos el editor conservando la fecha y cursado para agilizar la carga del próximo espacio
+  // Reseteo del formulario aplicando destrucción limpia de los Quill Editors mediante cambios de Key
   areaForm.value.areas_id = ''
   areaForm.value.saberes = ''
   areaForm.value.aprendizajes_esperados = ''
   areaForm.value.criterios = ''
   areaForm.value.diagnostico = ''
   areaForm.value.bibliografia = ''
+
+  nextTick(() => {
+    editorKey.value++ // Rompe y reconstruye instancias Quill totalmente vacías
+  })
 }
 
 const removerAreaTemporal = (index) => {
+  if (esEdicion.value) return // Impedir remover el bloque único si estamos editando
   areasAgregadas.value.splice(index, 1)
 }
 
@@ -282,34 +325,51 @@ const obtenerNombreArea = (id) => {
   return areaObj ? areaObj.area : `Área #${id}`
 }
 
-// 🚀 Envío secuencial atómico de cada área solapada hacia Laravel
-const confirmarGuardadoCompleto = async () => {
-  if (areasAgregadas.value.length === 0) return
+// Recibimos el objeto "datosActualizados" desde el emit del formulario hijo
+const confirmarGuardadoCompleto = async (datosActualizados = null) => {
+  if (!esEdicion.value && areasAgregadas.value.length === 0) return
 
   try {
     errorLocal.value = null
     planificacionStore.loading = true
 
-    // Recorremos las áreas solapadas y le mandamos a Laravel el formato individual que su store espera
-    for (const bloque of areasAgregadas.value) {
-      await planificacionStore.createPlanificacion({
-        fecha_presentacion: bloque.fecha_presentacion,
-        areas_id: bloque.areas_id,
-        persona_cargo_cursado_id: bloque.cursado_id, // Vincula tu FK obligatoria de la migración
+    if (esEdicion.value) {
+      // Usamos prioritariamente los datos del formulario si vienen en el evento, sino el bloque inicial
+      const origen = datosActualizados || areasAgregadas.value[0]
+      const idPlanificacion = route.params.id
+
+      await api.put(`/planificaciones/${idPlanificacion}`, {
+        fecha_presentacion: origen.fecha_presentacion,
+        areas_id: origen.areas_id,
+        persona_cargo_cursado_id: origen.persona_cargo_cursado_id || origen.cursado_id,
         tipo_planificacion: 'Anual',
-        saberes: bloque.saberes,
-        aprendizajes_esperados: bloque.aprendizajes_esperados,
-        criterios: bloque.criterios,
-        bibliografia: bloque.bibliografia || 'Sin especificar',
-        diagnostico: bloque.diagnostico || 'Sin especificar'
+        saberes: origen.saberes,
+        aprendizajes_esperados: origen.aprendizajes_esperados,
+        criterios: origen.criterios,
+        bibliografia: origen.bibliografia || 'Sin especificar',
+        diagnostico: origen.diagnostico || 'Sin especificar'
       })
+    } else {
+      // MODO CREACIÓN (Bucle secuencial masivo)
+      for (const bloque of areasAgregadas.value) {
+        await planificacionStore.createPlanificacion({
+          fecha_presentacion: bloque.fecha_presentacion,
+          areas_id: bloque.areas_id,
+          persona_cargo_cursado_id: bloque.cursado_id,
+          tipo_planificacion: 'Anual',
+          saberes: bloque.saberes,
+          aprendizajes_esperados: bloque.aprendizajes_esperados,
+          criterios: bloque.criterios,
+          bibliografia: bloque.bibliografia || 'Sin especificar',
+          diagnostico: bloque.diagnostico || 'Sin especificar'
+        })
+      }
     }
 
-    // Una vez que se guardaron todas de forma exitosa, volvemos
     volver()
   } catch (err) {
     console.error("Fallo en la sincronización final con la Base de Datos:", err)
-    errorLocal.value = "Ocurrió un error al intentar guardar los bloques en el servidor."
+    errorLocal.value = "Ocurrió un error al intentar guardar los bloques en el servidor. Revisa las columnas de validación."
   } finally {
     planificacionStore.loading = false
   }
@@ -323,7 +383,6 @@ const editorOptions = {
       [{ 'list': 'ordered'}, { 'list': 'bullet' }],
       [{ 'color': [] }, { 'background': [] }],
       [{ 'align': [] }],
-      ['table'],
       ['clean']
     ]
   },

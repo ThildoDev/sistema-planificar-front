@@ -27,9 +27,19 @@ export function usePlanificacion(autoFetch = true) {
     })
   }
 
-  const canEdit = (planificacion) => {
-    const editableStates = ['Pendiente', 'A Corregir', 'Rechazado']
-    return editableStates.includes(planificacion?.estado)
+const canEdit = (planificacion) => {
+    // Si no tiene estados registrados, significa que es un Borrador nuevo local, se permite editar
+    if (!planificacion?.estados || planificacion.estados.length === 0) {
+      return true
+    }
+
+    // Tomamos el último estado real
+    const ultimoEstadoObj = planificacion.estados[planificacion.estados.length - 1];
+    const state = ultimoEstadoObj?.estado ? ultimoEstadoObj.estado.toLowerCase().trim() : '';
+
+    // Lista de estados donde se expone el botón de modificar en el Dashboard
+    const editableStates = ['pendiente', 'a corregir', 'corregir', 'rechazado', 'rechazada', 'borrador']
+    return editableStates.includes(state) || state.includes('borr')
   }
 
   const statusConfig = {

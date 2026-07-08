@@ -73,10 +73,11 @@
 
         <div class="p-6">
           <PlanificacionForm
-            :initial-data="currentPlanificacion"
-            :is-edit="true"
-            @submit="onFormSubmit"
-            @cancel="goBack"
+              v-if="currentPlanificacion && currentPlanificacion.id"
+              :initial-data="currentPlanificacion"
+              :is-edit="true"
+              @submit="onFormSubmit"
+              @cancel="goBack"
           />
         </div>
       </div>
@@ -97,15 +98,11 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ArrowLeft, Pencil, ShieldAlert, AlertCircle, MessageSquare } from 'lucide-vue-next'
 import PlanificacionForm from '@/components/docente/PlanificacionForm.vue'
-import ConfirmEnvioModal from '@/components/docente/ConfirmarEnvioModal.vue' // O tu import de modal base
-import ConfirmEnvioModalComponent from '@/components/docente/ConfirmEnvioModal.vue' // Alias de resguardo según tu código
+import ConfirmEnvioModal from '@/components/docente/ConfirmEnvioModal.vue'
 import StatusBadgeAnual from '@/components/docente/StatusBadgeAnual.vue'
 import { usePlanificacion } from '@/composables/usePlanificacion'
 import { useAuthStore } from '@/stores/auth'
 import { useToastStore } from '@/stores/toast'
-
-// Resguardo de importación para evitar fallos de compresión en compiladores inline
-const ConfirmEnvioModal = ConfirmEnvioModalComponent
 
 const router = useRouter()
 const route = useRoute()
@@ -118,8 +115,7 @@ const showConfirmModal = ref(false)
 const submitting = ref(false)
 const pendingData = ref(null)
 
-// Estados tolerados para entrar a la pantalla de edición
-const EDITABLE_STATES = ['pendiente', 'a corregir', 'rechazado', 'borrador']
+const EDITABLE_STATES = ['borrador', 'rechazado', 'rechazada', 'a corregir', 'corregir']
 
 const obtenerEstadoActual = computed(() => {
   if (!currentPlanificacion.value) return 'Borrador'
@@ -129,29 +125,43 @@ const obtenerEstadoActual = computed(() => {
   return currentPlanificacion.value.estado || 'Borrador'
 })
 
-// Mapea la última observación registrada de la auditoría para exponerla en pantalla
 const ultimaObservacion = computed(() => {
   if (!currentPlanificacion.value?.estados) return null
-  // Recorremos de atrás hacia adelante para sacar el comentario más nuevo
   const hist = [...currentPlanificacion.value.estados].reverse()
   const conObs = hist.find(e => e.observaciones && e.observaciones.trim() !== '')
   return conObs ? conObs.observaciones : null
 })
 
 const accessBlocked = computed(() => {
-  if (authStore.userRole !== 'docente') return true
-  const state = obtenerEstadoActual.value.toLowerCase()
-  if (!EDITABLE_STATES.includes(state)) return true
-  return false
-})
+  // 1. Si el componente todavía está cargando los datos, NO bloquees el acceso aún
+  if (loading.value) return false
 
-const accessReason = computed(() => {
-  if (authStore.userRole !== 'docente') return 'Solo los docentes vinculados pueden editar planificaciones pedagógicas.'
-  const state = obtenerEstadoActual.value
-  if (!EDITABLE_STATES.includes(state.toLowerCase())) {
-    return `No se puede modificar una planificación que se encuentra actualmente en estado de auditoría "${state}".`
+  // 2. Validamos el rol ignorando mayúsculas/minúsculas y espacios
+  const rolUsuario = authStore.userRole ? authStore.userRole.toLowerCase().trim() : ''
+  if (rolUsuario !== 'docente') {
+    console.warn("Bloqueado por ROL. Rol actual del usuario:", authStore.userRole)
+    return true
   }
-  return ''
+
+  // 3. Validamos el estado ignorando espacios y pasándolo a minúsculas
+  const state = obtenerEstadoActual.value ? obtenerEstadoActual.value.toLowerCase().trim() : ''
+
+  console.log("--- 🕵️‍♂️ DEBUG DE ACCESO EN VIVO ---")
+  console.log("Rol del usuario:", rolUsuario)
+  console.log("Estado limpio recibido:", `"${state}"`)
+  console.log("---------------------------------")
+
+  // 4. Lista de estados permitidos (incluimos variantes con/sin espacios o parciales)
+  // Si el estado contiene la palabra 'borr' (ej: Borrador, borrador, borrador ), o está vacío, o es rechazado, se permite.
+  const esEditable = EDITABLE_STATES.includes(state) ||
+                     state.includes('borr') ||
+                     state.includes('corregir') ||
+                     state === '';
+
+  // Si no cumple ninguna condición de edición, bloqueamos la pantalla
+  if (!esEditable) return true
+
+  return false
 })
 
 onMounted(() => {
@@ -163,14 +173,15 @@ function goBack() {
 }
 
 function onFormSubmit(formData) {
-  pendingData.value = formData
-  showConfirmModal.value = true
+  setTimeout(() => {
+    pendingData.value = formData;
+    showConfirmModal.value = true;
+  }, 100);
 }
 
 async function onConfirm() {
   submitting.value = true
   try {
-    // Dispara el PUT hacia el método update blindado de Laravel
     await updatePlanificacion(planId, pendingData.value)
     showConfirmModal.value = false
     toast.showToast('¡Modificaciones guardadas! El registro volvió a estado borrador listo para enviarse.', 'success')
@@ -185,6 +196,5 @@ async function onConfirm() {
 </script>
 
 <style scoped>
-/* Eliminado el CSS clásico. El componente ahora hereda de forma limpia la grilla y fuentes nativas de Tailwind CSS. */
 .p-4\.5 { padding: 1.125rem; }
 </style>

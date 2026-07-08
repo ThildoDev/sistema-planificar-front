@@ -52,11 +52,17 @@ export const usePlanificacionStore = defineStore('planificacion', () => {
     loading.value = true
     error.value = null
     try {
-      // Usamos el servicio unificado
-      const data = await planificacionService.getPlanificacionById?.(id) || await planificacionService.updatePlanificacion(id)
-      currentPlanificacion.value = data
+      // Forzamos a llamar exclusivamente a la consulta por ID sin disparar métodos de actualización
+      if (!planificacionService.getPlanificacionById) {
+        throw new Error('planificacionService.getPlanificacionById no está definido.')
+      }
+      const data = await planificacionService.getPlanificacionById(id)
+
+      // Desempaquetamos si la respuesta viene envuelta en .data
+      currentPlanificacion.value = data?.data || data;
     } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'Error al buscar la planificación.'
+      console.error("Error crítico en fetchById:", err);
+      error.value = err.response?.data?.message || err.message || 'Error al buscar la planificación.';
     } finally {
       loading.value = false
     }
@@ -95,16 +101,22 @@ async function createPlanificacion(payload) {
     loading.value = true
     error.value = null
     try {
-      const data = await planificacionService.updatePlanificacion(id, payload)
+      const response = await planificacionService.updatePlanificacion(id, payload)
 
-      // Sincronización exacta en la lista local de memoria sin re-cargar de la red
+      // Aseguramos que 'data' sea el objeto correcto independientemente de si viene envuelto
+      const data = response.data || response
+
+      // Sincronización exacta en la lista local de memoria
       const idx = planificaciones.value.findIndex(p => p.id === Number(id))
-      if (idx !== -1) planificaciones.value[idx] = data
+      if (idx !== -1) {
+        planificaciones.value[idx] = { ...planificaciones.value[idx], ...data }
+      }
 
       currentPlanificacion.value = data
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || err.message || 'No se pudo actualizar la planificación.'
+      // Si Laravel devuelve error 422 o 500, capturamos el mensaje del backend
+      error.value = err.response?.data?.Mensaje || err.response?.data?.error || 'No se pudo actualizar.'
       throw err
     } finally {
       loading.value = false
