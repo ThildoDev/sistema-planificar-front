@@ -116,45 +116,15 @@ const AREAS = [
   'Lengua y Literatura',
   'Ciencias Naturales',
   'Ciencias Sociales',
-  'Educación Física',
-  'Educación Artística',
-  'Tecnología',
-  'Inglés',
-  'Formación Ética y Ciudadana',
   'Informática'
 ]
 
 const textareaFields = [
-  {
-    key: 'diagnostico_grupo',
-    label: 'Diagnóstico del Grupo',
-    placeholder: 'Describí las características generales del grupo, nivel de desempeño, necesidades detectadas...',
-    max: 1500
-  },
-  {
-    key: 'aprendizajes_esperados',
-    label: 'Aprendizajes Esperados',
-    placeholder: 'Indicá qué se espera que los alumnos aprendan al finalizar el período...',
-    max: 1500
-  },
-  {
-    key: 'saberes_contenidos',
-    label: 'Saberes / Contenidos',
-    placeholder: 'Listá los contenidos curriculares a trabajar, organizados por ejes temáticos...',
-    max: 2000
-  },
-  {
-    key: 'criterios_evaluacion',
-    label: 'Criterios de Evaluación',
-    placeholder: 'Describí de qué forma se evaluará el aprendizaje de los alumnos...',
-    max: 1500
-  },
-  {
-    key: 'bibliografia',
-    label: 'Bibliografía',
-    placeholder: 'Referenciá los libros, cuadernillos, recursos digitales y materiales a utilizar...',
-    max: 1000
-  }
+  { key: 'diagnostico', label: 'Diagnóstico del Grupo', placeholder: 'Describí las características generales del grupo, nivel de desempeño, necesidades detectadas...', max: 1500 },
+  { key: 'aprendizajes_esperados', label: 'Aprendizajes Esperados', placeholder: 'Indicá qué se espera que los alumnos aprendan al finalizar el período...', max: 1500 },
+  { key: 'saberes', label: 'Saberes / Contenidos', placeholder: 'Listá los contenidos curriculares a trabajar, organizados por ejes temáticos...', max: 2000 },
+  { key: 'criterios', label: 'Criterios de Evaluación', placeholder: 'Describí de qué forma se evaluará el aprendizaje de los alumnos...', max: 1500 },
+  { key: 'bibliografia', label: 'Bibliografía', placeholder: 'Referenciá los libros, cuadernillos, recursos digitales y materiales a utilizar...', max: 1000 }
 ]
 
 const props = defineProps({
@@ -176,12 +146,11 @@ const form = reactive({
   area_curricular: '',
   tipo_planificacion: '',
   fecha_presentacion: '',
-  diagnostico_grupo: '',
+  diagnostico: '',
   aprendizajes_esperados: '',
-  saberes_contenidos: '',
-  criterios_evaluacion: '',
-  bibliografia: '',
-  persona_cargo_cursado_id: authStore.user?.id
+  saberes: '',
+  criterios: '',
+  bibliografia: ''
 })
 
 const errors = reactive({})
@@ -206,14 +175,11 @@ function validate() {
   Object.keys(errors).forEach(k => delete errors[k])
   let valid = true
 
-  if (!form.area_curricular) { errors.area_curricular = 'Seleccioná un área curricular.'; valid = false }
-  if (!form.tipo_planificacion) { errors.tipo_planificacion = 'Seleccioná el tipo de planificación.'; valid = false }
-  if (!form.fecha_presentacion) { errors.fecha_presentacion = 'Indicá la fecha de presentación.'; valid = false }
-  if (!form.diagnostico_grupo?.trim()) { errors.diagnostico_grupo = 'El diagnóstico del grupo es requerido.'; valid = false }
-  if (!form.aprendizajes_esperados?.trim()) { errors.aprendizajes_esperados = 'Los aprendizajes esperados son requeridos.'; valid = false }
-  if (!form.saberes_contenidos?.trim()) { errors.saberes_contenidos = 'Los saberes/contenidos son requeridos.'; valid = false }
-  if (!form.criterios_evaluacion?.trim()) { errors.criterios_evaluacion = 'Los criterios de evaluación son requeridos.'; valid = false }
-  if (!form.bibliografia?.trim()) { errors.bibliografia = 'La bibliografía es requerida.'; valid = false }
+if (!form.diagnostico?.trim()) { errors.diagnostico = 'El diagnóstico del grupo es requerido.'; valid = false }
+if (!form.aprendizajes_esperados?.trim()) { errors.aprendizajes_esperados = 'Los aprendizajes esperados son requeridos.'; valid = false }
+if (!form.saberes?.trim()) { errors.saberes = 'Los saberes/contenidos son requeridos.'; valid = false }
+if (!form.criterios?.trim()) { errors.criterios = 'Los criterios de evaluación son requeridos.'; valid = false }
+if (!form.bibliografia?.trim()) { errors.bibliografia = 'La bibliografía es requerida.'; valid = false }
 
   return valid
 }
