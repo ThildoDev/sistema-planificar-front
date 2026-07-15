@@ -172,7 +172,7 @@ import {
   KeyRound, UserSearch, BarChart2,
 } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
-import { useNotificacionesStore } from '@/stores/notificaciones' // 🟢 Conectamos el store de la campana
+import { useNotificacionesStore } from '@/stores/notificaciones'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -228,13 +228,13 @@ const navDocente = [
 const navDirector = [
   { icon: ClipboardList,   label: 'Planificaciones Recibidas', to: '/revisiones' },
   { icon: UserPlus,        label: 'Crear Docente',             to: '/docentes/crear' },
-  { icon: KeyRound,        label: 'Blanqueo Contraseña',        to: '/usuarios/reset' },
+  // { icon: KeyRound,     label: 'Blanqueo Contraseña',        to: '/usuarios/reset' }, // 🟢 OCULTADO
 ]
 
 const navAdmin = [
   { icon: LayoutDashboard, label: 'Panel Principal',    to: '/dashboard' },
   { icon: UserPlus,        label: 'Crear Usuario',      to: '/usuarios/crear' },
-  { icon: KeyRound,        label: 'Blanqueo Contraseña', to: '/usuarios/reset' },
+  // { icon: KeyRound,     label: 'Blanqueo Contraseña', to: '/usuarios/reset' }, // 🟢 OCULTADO
   { icon: UserSearch,      label: 'Listado Usuarios',   to: '/usuarios' },
 ]
 </script>
