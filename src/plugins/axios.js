@@ -12,8 +12,7 @@ const api = axios.create({
   }
 })
 
-// REQUEST → Agrega token si existe automáticamente de forma ultra limpia
-// REQUEST → Agrega token si existe automáticamente de forma limpia
+
 api.interceptors.request.use(config => {
   let token = localStorage.getItem('planificar_token')
 
